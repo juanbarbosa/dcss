@@ -419,6 +419,7 @@ public:
 
     void add_position(const coord_def &c, bool force=false);
     bool valid_aim(coord_def) override { return true; }
+    bool can_affect_walls() override { return true; }
     aff_type is_affected(coord_def loc) override;
 
 protected:
@@ -589,7 +590,8 @@ public:
 class targeter_explosive_beam : public targeter_beam
 {
 public:
-    targeter_explosive_beam(const actor *act, int pow, int range,
+    targeter_explosive_beam(const actor *act, zap_type ztype,
+                            int pow, int range,
                             bool explode_on_monsters = true,
                             bool always_explode = false);
     bool set_aim(coord_def a) override;
