@@ -411,8 +411,7 @@ void noisy_equipment(const item_def &weapon)
 
     if (is_unrandom_artefact(weapon))
     {
-        string name = weapon.name(DESC_PLAIN, false, true, false, false,
-                                  ISFLAG_IDENT_MASK);
+        string name = weapon.name(DESC_PLAIN, false, true, false, false);
         msg = getSpeakString(name);
         if (msg == "NONE")
             return;
@@ -643,7 +642,7 @@ static bool _issue_order(int keyn, int &mons_targd)
         {
             direction_chooser_args args;
             args.restricts = DIR_TARGET;
-            args.mode = TARG_ANY;
+            args.mode = TARG_NON_ACTOR;
             args.needs_path = false;
             args.top_prompt = "Retreat in which direction?";
             dist targ;
