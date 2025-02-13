@@ -236,9 +236,6 @@ void ghost_demon::set_pan_lord_special_attack()
         10, _brand_attack(SPWPN_VENOM),
         10, _brand_attack(SPWPN_DRAINING),
         2, _brand_attack(SPWPN_FOUL_FLAME),
-        4, _flavour_attack(AF_DRAIN_STR),
-        4, _flavour_attack(AF_DRAIN_INT),
-        2, _flavour_attack(AF_DRAIN_DEX),
         10, _flavour_attack(AF_DROWN),
         // Normal chance
         20, _brand_attack(SPWPN_FLAMING),
@@ -437,9 +434,9 @@ void ghost_demon::init_player_ghost()
 {
     // don't preserve transformations for ghosty purposes
     unwind_var<transformation> form(you.form, transformation::none);
-    unwind_var<FixedBitVector<NUM_EQUIP>> melded(you.melded,
-                                                 FixedBitVector<NUM_EQUIP>());
+    unwind_var<player_equip_set> eq(you.equipment);
     unwind_var<bool> fishtail(you.fishtail, false);
+    you.equipment.unmeld_all_equipment(true);
 
     name   = you.your_name;
     max_hp = min(get_real_hp(false, false), MAX_GHOST_HP);

@@ -639,8 +639,7 @@ you ever see this message.
 eudemon blade
 
 A sacred blade from the forges of Heaven, inhabited by a good spirit. It is a
-favoured weapon of the Shining One's servants, and cannot be wielded by the
-forces of evil.
+favoured weapon of the Shining One's servants.
 %%%%
 eveningstar
 
@@ -1043,10 +1042,6 @@ potion of curing
 A potion which restores a small amount of health, and cures poison and
 confusion.
 %%%%
-potion of degeneration
-
-A noxious concoction which reduces strength, intelligence and dexterity.
-%%%%
 potion of enlightenment
 
 A potion which uplifts both the body and mind of its drinkers, lifting them
@@ -1084,6 +1079,11 @@ A valuable potion which grants an infusion of magical energy.
 potion of might
 
 A potion which greatly increases the power of the drinker's melee attacks.
+%%%%
+potion of moonshine
+
+A potent alcohol, distilled in some dubious corner of the dungeon. Drinking it
+reduces the imbiber's accuracy, evasion, and spellcasting success for a while.
 %%%%
 potion of mutation
 
@@ -1376,7 +1376,8 @@ scroll of torment
 
 A scroll that calls on the powers of darkness to inflict great pain on any
 nearby creature — including the reader! This halves the resilience of all
-living creatures, although it is never directly fatal.
+living creatures and cuts down all holy creature resilence by about a third,
+although it is never directly fatal.
 %%%%
 scroll of vulnerability
 
@@ -1413,6 +1414,14 @@ Unearthly energies gently flow along the surface of this gem, guided by the
 archmage who first built the Elven Halls. Countless generations of elves
 flocked to learn from her, but her foremost pursuit was always the perfection
 of this piece of art.
+%%%%
+shop voucher
+
+A coupon good for one item of any price from any store in the dungeon, to be
+used automatically when you would make a purchase that exceeds your funds. How
+generous! No refunds. One coupon per purchase per customer. Offer limited by
+availability. Void if defaced or otherwise altered. Valid only within the
+dungeon of Zot and its subsidiary branches. Additional purchase not required.
 %%%%
 shortbow
 

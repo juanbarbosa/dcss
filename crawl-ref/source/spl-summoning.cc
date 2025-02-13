@@ -54,6 +54,7 @@
 #include "mon-pathfind.h"
 #include "mon-place.h"
 #include "mon-speak.h"
+#include "mutation.h"
 #include "place.h" // absdungeon_depth
 #include "player-equip.h"
 #include "player-stats.h"
@@ -226,7 +227,7 @@ spret cast_summon_cactus(int pow, bool fail)
 
 spret cast_awaken_armour(int pow, bool fail)
 {
-    const item_def *armour = you.slot_item(EQ_BODY_ARMOUR);
+    const item_def *armour = you.body_armour();
     if (armour == nullptr)
     {
         // I don't think we can ever reach this line, but let's be safe.
@@ -254,7 +255,7 @@ spret cast_awaken_armour(int pow, bool fail)
         return spret::success;
     }
 
-    mprf("You draw out an echo of %s", armour->name(DESC_YOUR).c_str());
+    mprf("You draw out an echo of %s.", armour->name(DESC_YOUR).c_str());
 
     item_def &fake_armour = env.item[mitm_slot];
     fake_armour.clear();
@@ -295,7 +296,7 @@ spret cast_monstrous_menagerie(actor* caster, int pow, bool fail)
     monster_type type = MONS_PROGRAM_BUG;
 
     if (random2(pow) > 60 && coinflip())
-        type = MONS_SPHINX;
+        type = MONS_GUARDIAN_SPHINX;
     else
         type = coinflip() ? MONS_MANTICORE : MONS_LINDWURM;
 
@@ -762,7 +763,7 @@ static void _animate_weapon(int pow, actor* target)
                  target->pos(),
                  hostile ? MHITYOU : target->mindex(),
                  hostile ? MG_NONE : MG_FORCE_BEH);
-    mg.set_summoned(&you, SPELL_TUKIMAS_DANCE, summ_dur(dur));
+    mg.set_summoned(&you, SPELL_TUKIMAS_DANCE, summ_dur(dur), false);
     mg.set_range(1, 2);
     mg.props[TUKIMA_WEAPON] = *wpn;
     mg.props[TUKIMA_POWER] = pow;
@@ -1176,11 +1177,13 @@ spret cast_summon_horrible_things(int pow, bool fail)
         return spret::abort;
 
     fail_check();
-    if (one_chance_in(5))
+    if (one_chance_in(4))
     {
         // if someone deletes the db, no message is ok
         mpr(getMiscString("SHT_int_loss"));
-        lose_stat(STAT_INT, 1);
+
+        // XXX: Temporary effect until something else is implemented.
+        temp_mutate(MUT_WEAK_WILLED, "glimpsing the beyond");
     }
 
     int num_abominations = random_range(2, 4) + x_chance_in_y(pow, 200);
@@ -2365,7 +2368,7 @@ static void _overgrow_wall(const coord_def &pos)
                                                     4, MONS_WANDERING_MUSHROOM,
                                                     1, MONS_BALLISTOMYCETE,
                                                     1, MONS_OKLOB_PLANT);
-    mgen_data mgen(mon, BEH_FRIENDLY, pos, MHITYOU, MG_FORCE_PLACE);
+    mgen_data mgen(mon, BEH_FRIENDLY, pos, MHITYOU, MG_FORCE_PLACE, GOD_FEDHAS);
     mgen.hd = mons_class_hit_dice(mon) + you.skill_rdiv(SK_INVOCATIONS);
     mgen.set_summoned(&you, SPELL_NO_SPELL,
                         summ_dur(min(3 + you.skill_rdiv(SK_INVOCATIONS, 1, 5), 6)));
@@ -2436,7 +2439,7 @@ spret fedhas_grow_ballistomycete(const coord_def& target, bool fail)
     fail_check();
 
     mgen_data mgen(MONS_BALLISTOMYCETE, BEH_FRIENDLY, target, MHITYOU,
-            MG_FORCE_BEH | MG_FORCE_PLACE | MG_AUTOFOE);
+            MG_FORCE_BEH | MG_FORCE_PLACE | MG_AUTOFOE, GOD_FEDHAS);
     mgen.hd = mons_class_hit_dice(MONS_BALLISTOMYCETE) +
         you.skill_rdiv(SK_INVOCATIONS);
     mgen.set_summoned(&you, SPELL_NO_SPELL,
@@ -2483,7 +2486,7 @@ spret fedhas_grow_oklob(const coord_def& target, bool fail)
     fail_check();
 
     mgen_data mgen(MONS_OKLOB_PLANT, BEH_FRIENDLY, target, MHITYOU,
-            MG_FORCE_BEH | MG_FORCE_PLACE | MG_AUTOFOE);
+            MG_FORCE_BEH | MG_FORCE_PLACE | MG_AUTOFOE, GOD_FEDHAS);
     mgen.hd = mons_class_hit_dice(MONS_OKLOB_PLANT) +
         you.skill_rdiv(SK_INVOCATIONS);
     mgen.set_summoned(&you, SPELL_NO_SPELL,
@@ -2628,7 +2631,7 @@ spret foxfire_swarm()
     bool unknown_unseen = false;
     for (radius_iterator ri(you.pos(), 2, C_SQUARE, LOS_NO_TRANS); ri; ++ri)
     {
-        if (_create_foxfire(you, *ri, GOD_NO_GOD, 20))
+        if (_create_foxfire(you, *ri, 20))
         {
             created = true;
             continue;
@@ -3289,6 +3292,12 @@ void clockwork_bee_go_dormant(monster& bee)
 // Returns false if we lacked the MP to do so or there was no valid target for it.
 bool clockwork_bee_recharge(monster& bee)
 {
+    if (you.berserk())
+    {
+        mpr("If you tried to rewind gears in your present state, you'd only break them.");
+        return false;
+    }
+
     monster* targ = _get_clockwork_bee_target(&bee);
 
     // Nothing around for it to attack.
@@ -3550,11 +3559,15 @@ spret cast_surprising_crocodile(actor& agent, const coord_def& targ, int pow, bo
     atk.needs_message = false;
     atk.do_drag();
 
-    // Then perform the actual attack, with bonus power
-    atk.needs_message = true;
-    atk.dmg_mult = 20 + pow;
-    atk.to_hit = AUTOMATIC_HIT;
-    atk.attack();
+    // Then perform the actual attack, with bonus power.
+    // (But check that we didn't pull them into a shaft first.)
+    if (victim->alive())
+    {
+        atk.needs_message = true;
+        atk.dmg_mult = 20 + pow;
+        atk.to_hit = AUTOMATIC_HIT;
+        atk.attack();
+    }
 
     croc->flags & ~MF_JUST_SUMMONED;
 
@@ -3577,6 +3590,8 @@ spret cast_surprising_crocodile(actor& agent, const coord_def& targ, int pow, bo
                                 TERRAIN_CHANGE_FLOOD);
         }
     }
+
+    agent.apply_location_effects(start_pos);
 
     return spret::success;
 }
@@ -3856,7 +3871,8 @@ static void _do_player_potion()
     if (weights.empty())
         return;
 
-    flash_tile(you.pos(), random_choose(LIGHTBLUE, LIGHTGREEN, LIGHTMAGENTA));
+    flash_tile(you.pos(), random_choose(LIGHTBLUE, LIGHTGREEN, LIGHTMAGENTA),
+               120, TILE_BOLT_ALEMBIC_POTION);
 
     potion_type potion = *random_choose_weighted(weights);
 
@@ -3888,7 +3904,8 @@ static bool _do_monster_potion(monster& mons, monster& alembic)
 
     potion_type potion = *random_choose_weighted(weights);
 
-    flash_tile(mons.pos(), random_choose(LIGHTBLUE, LIGHTGREEN, LIGHTMAGENTA));
+    flash_tile(mons.pos(), random_choose(LIGHTBLUE, LIGHTGREEN, LIGHTMAGENTA),
+               60, TILE_BOLT_ALEMBIC_POTION);
 
     switch (potion)
     {
@@ -4237,7 +4254,7 @@ spret cast_summon_seismosaurus_egg(const actor& agent, int pow, bool fail)
 
     mgen_data egg = _summon_data(agent, MONS_SEISMOSAURUS_EGG, summ_dur(3),
                                  SPELL_SUMMON_SEISMOSAURUS_EGG);
-    egg.hd = (7 + div_rand_round(pow, 22));
+    egg.hd = (7 + div_rand_round(pow, 20));
     egg.set_range(3, 3, 1);
 
     if (monster* mons = create_monster(egg))

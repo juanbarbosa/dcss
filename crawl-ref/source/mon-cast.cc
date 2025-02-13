@@ -126,6 +126,7 @@ static void _setup_creeping_shadow(bolt &beam, const monster &, int pow);
 static void _setup_pyroclastic_surge(bolt &beam, const monster &caster, int pow);
 static ai_action::goodness _negative_energy_spell_goodness(const actor* foe);
 static ai_action::goodness _caster_sees_foe(const monster &caster);
+static ai_action::goodness _foe_effect_viable(const monster &caster, duration_type d, enchant_type e);
 static ai_action::goodness _foe_polymorph_viable(const monster &caster);
 static ai_action::goodness _foe_sleep_viable(const monster &caster);
 static ai_action::goodness _foe_tele_goodness(const monster &caster);
@@ -182,6 +183,7 @@ static bool _cast_seismic_stomp(const monster& caster, bolt& beam, bool check_on
 static ai_action::goodness _foe_siphon_essence_goodness(const monster &caster);
 static vector<actor*> _siphon_essence_victims (const actor& caster);
 static void _cast_siphon_essence(monster &caster, mon_spell_slot, bolt&);
+static ai_action::goodness _sojourning_bolt_goodness(const monster &caster);
 
 enum spell_logic_flag
 {
@@ -555,6 +557,9 @@ static const map<spell_type, mons_spell_logic> spell_to_logic = {
     { SPELL_CONFUSE, _hex_logic(SPELL_CONFUSE) },
     { SPELL_BANISHMENT, _hex_logic(SPELL_BANISHMENT) },
     { SPELL_PARALYSE, _hex_logic(SPELL_PARALYSE) },
+    { SPELL_VEX, _hex_logic(SPELL_VEX, [](const monster& caster) {
+                return _foe_effect_viable(caster, DUR_VEXED, ENCH_VEXED);
+    }, 5) },
     { SPELL_VITRIFY, _hex_logic(SPELL_VITRIFY, _foe_vitrify_goodness) },
     { SPELL_PETRIFY, _hex_logic(SPELL_PETRIFY) },
     { SPELL_PAIN, _hex_logic(SPELL_PAIN, [](const monster& caster) {
@@ -1111,6 +1116,14 @@ static ai_action::goodness _foe_siphon_essence_goodness(const monster &caster)
     return ai_action::good_or_impossible(!victims.empty());
 }
 
+static ai_action::goodness _sojourning_bolt_goodness(const monster &caster)
+{
+    const actor* foe = caster.get_foe();
+    ASSERT(foe);
+    return ai_action::good_or_impossible(!(foe->is_player()
+                                           && you.props.exists(SJ_TELEPORTITIS_SOURCE)));
+}
+
 /**
  * Build a function to set up a beam to buff the caster.
  *
@@ -1570,8 +1583,8 @@ static bool _flavour_benefits_monster(beam_type flavour, monster& monster)
     case BEAM_RESISTANCE:
         return !monster.has_ench(ENCH_RESISTANCE);
 
-    case BEAM_DOUBLE_VIGOUR:
-        return !monster.has_ench(ENCH_DOUBLED_VIGOUR);
+    case BEAM_DOUBLE_HEALTH:
+        return !monster.has_ench(ENCH_DOUBLED_HEALTH);
 
     case BEAM_CONCENTRATE_VENOM:
         return !monster.has_ench(ENCH_CONCENTRATE_VENOM)
@@ -2019,6 +2032,7 @@ bolt mons_spell_beam(const monster* mons, spell_type spell_cast, int power,
     case SPELL_SANDBLAST:
     case SPELL_THROW_BOLAS:
     case SPELL_HARPOON_SHOT:
+    case SPELL_SOJOURNING_BOLT:
     case SPELL_THROW_PIE:
     case SPELL_NOXIOUS_CLOUD:
     case SPELL_POISONOUS_CLOUD:
@@ -2782,7 +2796,7 @@ static bool _mons_call_of_chaos(const monster& mon, bool check_only = false)
 
         beam_type flavour = random_choose_weighted(150, BEAM_HASTE,
                                                    150, BEAM_MIGHT,
-                                                   150, BEAM_DOUBLE_VIGOUR,
+                                                   150, BEAM_DOUBLE_HEALTH,
                                                    150, BEAM_RESISTANCE,
                                                     15, BEAM_VULNERABILITY,
                                                     15, BEAM_BERSERK,
@@ -2790,6 +2804,8 @@ static bool _mons_call_of_chaos(const monster& mon, bool check_only = false)
                                                     15, BEAM_INNER_FLAME);
 
         enchant_actor_with_flavour(*mi, &mon, flavour);
+        flash_tile(mi->pos(), random_choose(RED, BLUE, GREEN, YELLOW, MAGENTA),
+                   80, TILE_BOLT_CHAOS_BUFF);
 
         affected++;
         if (you.can_see(**mi))
@@ -5384,7 +5400,7 @@ static bool _mons_cast_freeze(monster* mons)
 
     // We use non-random damage for monster Freeze so that the damage display
     // is simple to display to players without being misleading.
-    const int base_damage = freeze_damage(pow, false).roll();
+    const int base_damage = zap_damage(ZAP_FREEZE, pow, true, false).roll();
     const int damage = resist_adjust_damage(target, BEAM_COLD, base_damage);
 
     if (you.can_see(*target))
@@ -5853,7 +5869,7 @@ static branch_summon_pair _planerend_summons[] =
   { BRANCH_TOMB,
     { // Tomb enemies
       {  1,   1,   60, FLAT, MONS_ANCIENT_CHAMPION },
-      {  1,   1,  100, FLAT, MONS_SPHINX },
+      {  1,   1,  100, FLAT, MONS_GUARDIAN_SPHINX },
       {  1,   1,  100, FLAT, MONS_MUMMY_PRIEST },
     }},
   { BRANCH_ABYSS,
@@ -6302,23 +6318,26 @@ static void _mons_upheaval(monster& mons, actor& /*foe*/, bool randomize)
     switch (randomize ? random2(4) : 0)
     {
         case 0:
-            beam.name     = "blast of magma";
-            beam.flavour  = BEAM_LAVA;
-            beam.colour   = RED;
-            beam.hit_verb = "engulfs";
-            message       = "Magma suddenly erupts from the ground!";
+            beam.name      = "blast of magma";
+            beam.flavour   = BEAM_LAVA;
+            beam.colour    = RED;
+            beam.tile_beam = TILE_BOLT_MAGMA;
+            beam.hit_verb  = "engulfs";
+            message        = "Magma suddenly erupts from the ground!";
             break;
         case 1:
-            beam.name    = "blast of ice";
-            beam.flavour = BEAM_ICE;
-            beam.colour  = WHITE;
-            message      = "A blizzard blasts the area with ice!";
+            beam.name      = "blast of ice";
+            beam.flavour   = BEAM_ICE;
+            beam.colour    = WHITE;
+            beam.tile_beam = TILE_BOLT_ICEBLAST;
+            message        = "A blizzard blasts the area with ice!";
             break;
         case 2:
-            beam.name    = "cutting wind";
-            beam.flavour = BEAM_AIR;
-            beam.colour  = LIGHTGRAY;
-            message      = "A storm cloud blasts the area with cutting wind!";
+            beam.name      = "cutting wind";
+            beam.flavour   = BEAM_AIR;
+            beam.colour    = LIGHTGRAY;
+            beam.tile_beam = TILE_BOLT_STRONG_AIR;
+            message        = "A storm cloud blasts the area with cutting wind!";
             break;
         case 3:
             beam.name    = "blast of rubble";
@@ -6490,6 +6509,22 @@ static bool _cast_dirge(monster& caster, bool check_only = false)
     return true;
 }
 
+// Some monsters wear armour but shouldn't wield weapons, so we can't just
+// check equipment status: check their attack types too.
+static bool _bestow_arms_attack_types_valid(monster* mon)
+{
+    bool valid = false;
+
+    for (int i = 0; i < MAX_NUM_ATTACKS; ++i)
+    {
+        const mon_attack_def attk = mons_attack_spec(*mon, 0);
+        if (attk.type == AT_HIT || attk.type == AT_WEAP_ONLY)
+            valid = true;
+    }
+
+    return valid;
+}
+
 static void _cast_bestow_arms(monster& caster)
 {
     vector<monster*> targs;
@@ -6501,7 +6536,8 @@ static void _cast_bestow_arms(monster& caster)
     for (monster_near_iterator mi(caster.pos(), LOS_NO_TRANS); mi; ++mi)
     {
         if (mons_aligned(&caster, *mi) && !mi->has_ench(ENCH_ARMED)
-            && (mons_itemuse(**mi) >= MONUSE_STARTING_EQUIPMENT))
+            && (mons_itemuse(**mi) >= MONUSE_STARTING_EQUIPMENT)
+            && _bestow_arms_attack_types_valid(*mi))
         {
             // Skip enemies with unrandarts, which are special enough to not
             // replace.
@@ -6889,9 +6925,14 @@ void mons_cast(monster* mons, bolt pbolt, spell_type spell_cast,
 
         if (you.can_see(*foe))
         {
-                mprf("The air twists around and strikes %s%s",
-                     foe->name(DESC_THE).c_str(),
-                     attack_strength_punctuation(damage_taken).c_str());
+            tileidx_t tile = TILE_BOLT_DEFAULT_WHITE;
+
+            mprf("%s and strikes %s%s",
+                 airstrike_intensity_display(empty_space, tile).c_str(),
+                 foe->name(DESC_THE).c_str(),
+                 attack_strength_punctuation(damage_taken).c_str());
+
+            flash_tile(foe->pos(), WHITE, 60, tile);
         }
 
         foe->hurt(mons, damage_taken, BEAM_MISSILE, KILLED_BY_BEAM,
@@ -8763,6 +8804,9 @@ ai_action::goodness monster_spell_goodness(monster* mon, spell_type spell)
     case SPELL_BLINK_OTHER_CLOSE:
         return _foe_effect_viable(*mon, DUR_DIMENSION_ANCHOR, ENCH_DIMENSION_ANCHOR);
 
+    case SPELL_SOJOURNING_BOLT:
+        return ai_action::good_or_impossible(_sojourning_bolt_goodness(*mon).first);
+
     case SPELL_DREAM_DUST:
         return _foe_sleep_viable(*mon);
 
@@ -9124,7 +9168,8 @@ ai_action::goodness monster_spell_goodness(monster* mon, spell_type spell)
         for (monster_near_iterator mi(mon->pos(), LOS_NO_TRANS); mi; ++mi)
         {
             if (mons_aligned(mon, *mi) && !mi->has_ench(ENCH_ARMED)
-                && (mons_itemuse(**mi) >= MONUSE_STARTING_EQUIPMENT))
+                && (mons_itemuse(**mi) >= MONUSE_STARTING_EQUIPMENT)
+                && _bestow_arms_attack_types_valid(*mi))
             {
                 return ai_action::good();
             }

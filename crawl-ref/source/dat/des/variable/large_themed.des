@@ -378,19 +378,19 @@ NAME:   minmay_skeleton_keep
 TAGS:   no_monster_gen
 ORIENT: northwest
 DEPTH:  Depths, Crypt
-MONS:   laughing skull / nothing w:20, skeleton w:20 / nothing
+MONS:   laughing skull / nothing w:15, skeleton w:20 / nothing
 MONS:   skeletal warrior band / bone dragon w:1 / lich w:1 / curse skull w:1
 SUBST:  G : GGccV.
 : vault_metal_statue_setup(_G, "S", "soul conduit")
 MAP
 cccccccccccccccccccccccccccccccc
 c....2.....||c...+....111c|....c
-c+c.2.3...cccc...c......1cc..3.c
+c+c.2.3...cccc...c.....21cc..3.c
 c.cc...2.2.ccc...c......1ccc...c
 c..cc...2...cc...c...S...+2cc..c
 c...cc.2...2.c...c......cc2ccc.c
 c....cc...2..c...c1....cc2...+.c
-c..3..cc.2...+...c1...cc2.2.2c.c
+c..3..cc.2...+...c12..cc2.2.2c.c
 c1.....cc....c...c111cc2.2.22c|c
 c11.....cccccc.3.ccccccccccc+ccc
 c1111....c...........c22.+.111.c
@@ -406,7 +406,7 @@ TAGS:   no_rotate
 ORIENT: northwest
 DEPTH:  Depths
 MONS:   plant, bush
-MONS:   spriggan w:70 / spriggan druid / spriggan berserker / spriggan rider
+MONS:   spriggan w:50 / spriggan druid / spriggan berserker / spriggan rider
 MONS:   spriggan defender, alderking
 KFEAT:  % = cache of fruit
 SUBST:  1 : 12t p:1, p = 12t, c : xc, 3 = 3, 4 = 444., 5 = 55., % : %$
@@ -651,7 +651,7 @@ TAGS:   no_monster_gen no_descent
 DEPTH:  Depths, !Depths:$
 MONS:   golden dragon, any draconian
 MONS:   rime drake / swamp drake / lindwurm
-KMONS:  D = rime drake w:5 / wind drake w:5 / death drake / lindwurm w:5
+KMONS:  D = wind drake w:5 / death drake / lindwurm w:5 / wyrmhole w:5
 KMONS:  f = fungus
 KMONS:  p = plant
 KITEM:  D = $
@@ -795,6 +795,7 @@ MARKER: V = lua:fog_machine { \
 SUBST:  'V = .
 : decorative_floor(_G, 'M', "broken floral vase")
 TILE:   M = dngn_dark_flower_pot_broken
+TILE:   v = dngn_metal_wall_red
 :       vault_metal_statue_setup(_G, "g", "mystic cage")
 :       dgn.delayed_decay(_G, '%', 'human corpse / human skeleton')
 veto {{ return you.uniques("Jory") }}
@@ -2650,7 +2651,7 @@ MONS:    very ugly thing / glowing orange brain w:5 / spriggan rider
 MONS:    flayed ghost w:5 / spriggan berserker / glowing shapeshifter
 MONS:    spark wasp / glass eye w:5 / spriggan defender
 MONS:    shadow dragon w:4 / tentacled monstrosity w:6 / golden dragon
-MONS:    alderking / caustic shrike
+MONS:    alderking / caustic shrike / wyrmhole w:2
 KFEAT:   ^ = alarm trap / dispersal trap w:2
 SHUFFLE: {([ / })] / %%% / %%% / %%%
 SUBST:   { = {:50 <, ( = (:50 <, } = }:50 >, ) = ):50 >
@@ -2747,7 +2748,7 @@ KMONS:   L = fire dragon
 MONS:    hell knight / rakshasa w:5 / spriggan defender zombie w:5, fire giant
 MONS:    vampire knight, deep troll earth mage, tengu reaver
 KMONS:   6 : juggernaut w:15 / iron dragon
-KMONS:   7 : ancient lich / dread lich
+KMONS:   7 : ancient lich / dread lich / wyrmhole w:2
 NSUBST:  V> = 1:} / 1 = ) >:6 / 1 = ] >:6
 TILE:    v = dngn_metal_wall_brown
 :   else
@@ -3071,7 +3072,7 @@ MONS:    spark wasp zombie, vampire knight, vampire mage
 MONS:    flayed ghost, alderking
 MONS:    spriggan berserker
 KMONS:   8 = spriggan defender
-KMONS:   9 = sphinx
+KMONS:   9 = guardian sphinx
 KMONS:   0 = spark wasp band
 NSUBST:  7 = 4:7 / 2:8 / 1:9 / 1:0 / 3 = 123489 / *:.
 NSUBST:  A = 1:15 / 2 = 234, B = 2:2 / 1:3479, C = 2:3 / 1:124
@@ -3329,7 +3330,7 @@ SUBST:   })] = %
 NSUBST:  | = 1:e / 1:f / 3:g / * = ffg, % = 2:d / 2:e / 2:fg / * = k.
 NSUBST:  1 = 1:2 / *:1, 23 = 2:.
 :   elseif you.where() ~= dgn.level_name(dgn.br_entrance("Depths")) then
-MONS:    deep elf knight / orc sorcerer / ogre mage / sphinx w:2
+MONS:    deep elf knight / orc sorcerer / ogre mage / sphinx marauder w:2
 MONS:    tengu conjurer w:5 / deep elf archer w:15 / arcanist / boggart band
 MONS:    laughing skull band w:5 / great orb of eyes / meliai band w:1
 MONS:    centaur warrior / boulder beetle / unseen horror / wolf spider
@@ -3340,7 +3341,7 @@ NSUBST:  | = 1:f / 3:g / 1:h / 1:i / * = ffg, % = 1:d / 2:e / 1:fg / * = def.
 MONS:    rakshasa / occultist, tengu conjurer / necromancer
 MONS:    ice dragon w:1 / glowing orange brain w:20 / \
          very ugly thing / storm dragon zombie
-MONS:    flayed ghost / glowing shapeshifter w:20 / sphinx skeleton
+MONS:    flayed ghost / glowing shapeshifter w:20 / guardian sphinx skeleton
 MONS:    ugly thing / shapeshifter w:15 / spriggan air mage simulacrum w:5
 KFEAT:   ) = enter_depths
 KITEM:   S = smoky gem
@@ -3352,7 +3353,7 @@ TILE:    x = wall_pebble_lightblue
 TILE:    c = wall_marble w:200 / dngn_stone_wall_lightblue
 : elseif you.in_branch("Shoals") then
 MONS:    merfolk aquamancer / frost giant w:2, merfolk avatar / satyr
-MONS:    formless jellyfish / harpy band, skyshark
+MONS:    formless jellyfish / sphinx marauder, skyshark
 MONS:    merfolk siren w:2 / faun w:2 / water elemental
 SHUFFLE: })]
 SUBST:   )] = %
@@ -3364,7 +3365,8 @@ MONS:    tengu reaver / titan / lich / alderking w:5
 MONS:    frost giant / vampire mage / vampire knight w:5
 MONS:    walking crystal tome / walking frostbound tome / \
          walking divine tome / walking earthen tome
-MONS:    sphinx / spark wasp / caustic shrike / glass eye
+MONS:    guardian sphinx / spark wasp / caustic shrike / \
+         glass eye / wyrmhole w:2
 MONS:    spriggan air mage / very ugly thing / glowing orange brain / \
          glowing shapeshifter w:20 / rakshasa
 SHUFFLE: }])

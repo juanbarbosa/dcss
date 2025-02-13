@@ -407,7 +407,6 @@ bool mons_is_siren_beholder(const monster& mons);
 
 bool mons_is_removed(monster_type mc);
 
-bool mons_looks_stabbable(const monster& m);
 bool mons_looks_distracted(const monster& m);
 
 void mons_start_fleeing_from_sanctuary(monster& mons);
@@ -498,7 +497,7 @@ bool mons_can_traverse(const monster& mon, const coord_def& pos,
                        bool only_in_sight = false,
                        bool checktraps = true);
 
-mon_inv_type equip_slot_to_mslot(equipment_type eq);
+mon_inv_type equip_slot_to_mslot(equipment_slot eq);
 mon_inv_type item_to_mslot(const item_def &item);
 
 bool player_or_mon_in_sanct(const monster& mons);

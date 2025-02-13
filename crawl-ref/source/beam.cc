@@ -868,7 +868,7 @@ void bolt::draw(const coord_def& p, bool force_refresh)
     // Set default value if none specified.
     if (tile_beam == 0)
         tile_beam = tileidx_zap(colour);
-    view_add_tile_overlay(p, vary_bolt_tile(tile_beam, source, target));
+    view_add_tile_overlay(p, vary_bolt_tile(tile_beam, source, target, p));
 #endif
     const unsigned short c = colour == BLACK ? random_colour(true)
                                              : element_colour(colour);
@@ -2052,7 +2052,7 @@ static bool _curare_hits_monster(actor *agent, monster* mons, int bonus_poison)
     simple_monster_message(*mons, " struggles to breathe.");
     mons->hurt(agent, roll_dice(2, 6), BEAM_POISON);
 
-    if (mons->alive())
+    if (mons->alive() && !mons->stasis())
     {
         if (!mons->cannot_act())
         {
@@ -3340,7 +3340,7 @@ bool bolt::harmless_to_player() const
     case BEAM_AGILITY:
     case BEAM_INVISIBILITY:
     case BEAM_RESISTANCE:
-    case BEAM_DOUBLE_VIGOUR:
+    case BEAM_DOUBLE_HEALTH:
         return true;
 
     case BEAM_HOLY:
@@ -3780,6 +3780,11 @@ void bolt::affect_player_enchantment(bool resistible)
         obvious_effect = true;
         break;
 
+    case BEAM_VEX:
+        you.vex(agent(), random_range(3, 6));
+        obvious_effect = true;
+        break;
+
     case BEAM_CONFUSION:
         confuse_player(5 + random2(3));
         obvious_effect = true;
@@ -4176,17 +4181,6 @@ static const vector<pie_effect> pie_effects = {
         10
     },
     {
-        "raspberry",
-        [](const actor &defender) {
-            return defender.is_player();
-        },
-        [](actor &/*defender*/, const bolt &/*beam*/) {
-            for (int i = 0; i < NUM_STATS; ++i)
-                lose_stat(static_cast<stat_type>(i), 1 + random2(3));
-        },
-        10
-    },
-    {
         "cherry",
         [](const actor &defender) {
             return defender.is_player() || defender.res_fire() < 3;
@@ -4526,6 +4520,17 @@ void bolt::affect_player()
     if (flavour == BEAM_CRYSTALLIZING)
         crystallize_player();
 
+    if (origin_spell == SPELL_SOJOURNING_BOLT
+        && final_dam > 0 && x_chance_in_y(2, 3))
+    {
+        you.teleport();
+        if (you.duration[DUR_TELEPORT])
+        {
+            mprf(MSGCH_DANGER, "You feel a distressing malevolence running through your instability!");
+            you.props[SJ_TELEPORTITIS_SOURCE].get_int() = agent(true) ? agent(true)->mid : MID_NOBODY;
+        }
+    }
+
     if (origin_spell == SPELL_THROW_PIE && final_dam > 0)
     {
         const pie_effect effect = _random_pie_effect(you);
@@ -4566,6 +4571,11 @@ bool bolt::ignores_player() const
     {
         return true;
     }
+
+    // XXX: Mostly to stop the targeter being weird with trying to keep you
+    //      out of splash damage.
+    if (origin_spell == SPELL_MERCURY_ARROW && agent() && agent()->is_player())
+        return true;
 
     if (origin_spell == SPELL_HOARFROST_BULLET && is_explosion
         && agent() && agent()->wont_attack())
@@ -5174,8 +5184,11 @@ void bolt::kill_monster(monster &mon)
 
     item_def *corpse = monster_die(mon, ref_killer, kindex);
 
-    if (origin_spell != SPELL_GLACIATE && origin_spell != SPELL_GLACIAL_BREATH)
+    if (origin_spell != SPELL_GLACIATE && origin_spell != SPELL_GLACIAL_BREATH
+        || goldify)
+    {
         return;
+    }
 
     if (corpse)
         destroy_item(corpse->index());
@@ -5255,6 +5268,12 @@ void bolt::monster_post_hit(monster* mon, int dmg)
                             * BASELINE_DELAY;
             mon->add_ench(mon_enchant(ENCH_ANTIMAGIC, 0, agent(), dur));
         }
+    }
+
+    if (origin_spell == SPELL_SOJOURNING_BOLT
+        && x_chance_in_y(2, 3) && !(mon->no_tele()))
+    {
+        monster_teleport(mon, false);
     }
 
     if (flavour == BEAM_CRYSTALLIZING)
@@ -5536,7 +5555,7 @@ bool bolt::at_blocking_monster() const
     if (!pierce && !ignores_monster(mon) && mon->is_firewood())
         return true;
     if (have_passive(passive_t::neutral_slimes)
-        && never_harm_monster(agent(), mon)
+        && mons_is_slime(*mon)
         && flavour != BEAM_VILE_CLUTCH)
     {
         return true;
@@ -5720,7 +5739,8 @@ void bolt::affect_monster(monster* mon)
 
     int hit_margin = _test_beam_hit(beam_hit, rand_ev, r);
 
-    if (you.duration[DUR_BLIND] && agent() && agent()->is_player())
+    if (you.duration[DUR_BLIND] && beam_hit != AUTOMATIC_HIT && agent()
+        && agent()->is_player())
     {
         const int distance = you.pos().distance_from(mon->pos());
         if (x_chance_in_y(player_blind_miss_chance(distance), 100))
@@ -6001,6 +6021,7 @@ bool ench_flavour_affects_monster(actor *agent, beam_type flavour,
 
     case BEAM_CONFUSION:
     case BEAM_IRRESISTIBLE_CONFUSION:
+    case BEAM_VEX:
         rc = !mon->clarity();
         break;
 
@@ -6399,11 +6420,11 @@ mon_resist_type bolt::apply_enchantment_to_monster(monster* mon)
         }
         return MON_AFFECTED;
 
-    case BEAM_DOUBLE_VIGOUR:
-        if (!mon->has_ench(ENCH_DOUBLED_VIGOUR)
-            && mon->add_ench(ENCH_DOUBLED_VIGOUR))
+    case BEAM_DOUBLE_HEALTH:
+        if (!mon->has_ench(ENCH_DOUBLED_HEALTH)
+            && mon->add_ench(ENCH_DOUBLED_HEALTH))
         {
-            if (simple_monster_message(*mon, " surges with doubled vitality!"))
+            if (simple_monster_message(*mon, " surges with doubled health!"))
                 obvious_effect = true;
         }
         return MON_AFFECTED;
@@ -6455,6 +6476,12 @@ mon_resist_type bolt::apply_enchantment_to_monster(monster* mon)
 
         apply_bolt_petrify(mon);
         return MON_AFFECTED;
+
+    case BEAM_VEX:
+        if (mon->vex(agent(), random_range(3, 6)))
+            return MON_AFFECTED;
+        else
+            return MON_UNAFFECTED;
 
     case BEAM_SPORE:
     case BEAM_CONFUSION:
@@ -6871,8 +6898,8 @@ const map<spell_type, explosion_sfx> spell_explosions = {
         "a raging storm",
     } },
     { SPELL_MEPHITIC_CLOUD, {
-        "The ball explodes into a vile cloud!",
-        "a loud \'bang\'",
+        "The flask of dizzying concoctions shatters into a vile cloud!",
+        "a loud shattering of glass",
     } },
     { SPELL_GHOSTLY_FIREBALL, {
         "The ghostly flame explodes!",
@@ -7214,7 +7241,7 @@ bool bolt::explosion_draw_cell(const coord_def& p)
                 else
                     tile_explode = tileidx_zap(colour);
             }
-            view_add_tile_overlay(p, vary_bolt_tile(tile_explode, source, target));
+            view_add_tile_overlay(p, vary_bolt_tile(tile_explode, source, target, p));
 #endif
             const unsigned short c = colour == BLACK ?
                     random_colour(true) : element_colour(colour, false, p);
@@ -7414,7 +7441,7 @@ bool bolt::nice_to(const monster_info& mi) const
 
     if (flavour == BEAM_HASTE
         || flavour == BEAM_HEALING
-        || flavour == BEAM_DOUBLE_VIGOUR
+        || flavour == BEAM_DOUBLE_HEALTH
         || flavour == BEAM_MIGHT
         || flavour == BEAM_AGILITY
         || flavour == BEAM_INVISIBILITY
@@ -7683,7 +7710,8 @@ static string _beam_type_name(beam_type type)
     case BEAM_SHADOW_TORPOR:         return "shadow torpor";
     case BEAM_HAEMOCLASM:            return "gore";
     case BEAM_BLOODRITE:             return "blood";
-    case BEAM_DOUBLE_VIGOUR:         return "vigour-doubling";
+    case BEAM_DOUBLE_HEALTH:         return "health-doubling";
+    case BEAM_VEX:                   return "vexing";
     case BEAM_SEISMIC:               return "seismic shockwave";
     case BEAM_BOLAS:                 return "entwining bolas";
     case BEAM_MERCURY:               return "mercury";

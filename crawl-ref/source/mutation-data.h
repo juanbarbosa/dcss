@@ -534,7 +534,7 @@ static const mutation_def mut_data[] =
   {"Your urge to shout disappears.",
    "Your urge to scream lessens.",
    ""},
-  TILEG_MUT_GENERIC_BAD_MUTATION,
+  TILEG_MUT_SCREAM,
 },
 
 #if TAG_MAJOR_VERSION == 34
@@ -575,21 +575,21 @@ static const mutation_def mut_data[] =
   TILEG_MUT_BERSERK,
 },
 
-{ MUT_DETERIORATION, 10, 2, mutflag::bad, false,
-  "deterioration",
+{ MUT_POOR_CONSTITUTION, 10, 2, mutflag::bad, false,
+  "poor constitution",
 
-  {"Your body sometimes deteriorates upon taking damage.",
-   "Your body often deteriorates upon taking damage.",
+  {"Your body sometimes grows weak upon taking damage.",
+   "Your body sometimes grows weak and slow upon taking damage.",
    ""},
 
-  {"You feel yourself wasting away.",
-   "You feel your body start to fall apart.",
+  {"You feel your constitution weaken.",
+   "You feel your constitution grow even weaker.",
    ""},
 
-  {"You feel healthier.",
-   "You feel a little healthier.",
+  {"You feel your constitution return to normal.",
+   "You feel your constitution improve a little.",
    ""},
-  TILEG_MUT_DETERIORATION,
+  TILEG_MUT_POOR_CONSTITUTION,
 },
 
 #if TAG_MAJOR_VERSION == 34
@@ -1065,6 +1065,8 @@ static const mutation_def mut_data[] =
   {"", "Your legs feel stronger.", ""},
 
   {"", "", ""},
+
+  TILEG_MUT_HOP,
 },
 #if TAG_MAJOR_VERSION == 34
 
@@ -1906,7 +1908,7 @@ static const mutation_def mut_data[] =
   {"You are covered in slimy tendrils that may disarm your opponents.", "", ""},
   {"Thin, slimy tendrils emerge from your body.", "", ""},
   {"Your tendrils retract into your body.", "", ""},
-  TILEG_MUT_GENERIC_JIYVA_MUTATION,
+  TILEG_MUT_TENDRILS,
 },
 
 { MUT_JELLY_GROWTH, 0, 1, mutflag::good | mutflag::jiyva, true,
@@ -2060,7 +2062,7 @@ static const mutation_def mut_data[] =
    "Your hands twist and begin to emit a powerful aura of unholy energy."},
 
   {"", "", ""},
-  TILEG_MUT_GENERIC_DEMONSPAWN_MUTATION,
+  TILEG_MUT_DEMONIC_TOUCH,
 },
 
 { MUT_COLD_BLOODED, 0, 1, mutflag::bad, true,
@@ -2134,6 +2136,7 @@ static const mutation_def mut_data[] =
   {"You are missing a hand.", "", ""},
   {"One of your hands has vanished, leaving only a stump!", "", ""},
   {"Your stump has regrown into a hand!", "", ""},
+  TILEG_MUT_MISSING_HAND,
 },
 
 { MUT_NO_STEALTH, 0, 1, mutflag::bad, false,
@@ -2367,7 +2370,7 @@ static const mutation_def mut_data[] =
   {"You expend magic power (3 MP) to strengthen your wands.", "", ""},
   {"You feel your magical essence link to the dungeon's wands.", "", ""},
   {"Your magical essence no longer links to wands of the dungeon.", "", ""},
-  TILEG_MUT_GENERIC_GOOD_MUTATION,
+  TILEG_MUT_MP_WANDS,
 },
 
 { MUT_UNSKILLED, 0, 3, mutflag::bad, false,
@@ -2413,6 +2416,7 @@ static const mutation_def mut_data[] =
   {"You are missing an eye, making it more difficult to aim.", "", ""},
   {"Your right eye vanishes! The world loses its depth.", "", ""},
   {"Your right eye suddenly reappears! The world regains its depth.", "", ""},
+  TILEG_MUT_MISSING_EYE,
 },
 
 { MUT_TEMPERATURE_SENSITIVITY, 0, 1, mutflag::bad, false,
@@ -2615,6 +2619,8 @@ static const mutation_def mut_data[] =
     {"You feel less vital.",
      "You feel less vital.",
      "You feel less vital."},
+
+  TILEG_MUT_FLAT_HP,
 },
 
 { MUT_ENGULF, 0, 1, mutflag::good | mutflag::jiyva, true,

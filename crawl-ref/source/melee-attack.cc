@@ -73,7 +73,7 @@ melee_attack::melee_attack(actor *attk, actor *defn,
     attack_number(attack_num), effective_attack_number(effective_attack_num),
     cleaving(false), is_multihit(false), is_riposte(false),
     is_projected(false), charge_pow(0), never_cleave(false), dmg_mult(0),
-    flat_dmg_bonus(0),
+    flat_dmg_bonus(0), never_prompt(false),
     wu_jian_attack(WU_JIAN_ATTACK_NONE),
     wu_jian_number_of_targets(1),
     is_shadow_stab(false)
@@ -156,7 +156,7 @@ bool melee_attack::handle_phase_attempted()
         return false;
     }
 
-    if (bad_attempt())
+    if (!never_prompt && bad_attempt())
     {
         cancel_attack = true;
         return false;
@@ -365,7 +365,7 @@ bool melee_attack::handle_phase_dodged()
                     return false;
             }
 
-            if (defender->is_player() && player_equip_unrand(UNRAND_STARLIGHT))
+            if (defender->is_player() && you.unrand_equipped(UNRAND_STARLIGHT))
                 do_starlight();
         }
 
@@ -386,7 +386,7 @@ void melee_attack::maybe_riposte()
     // monsters can't use
     const bool using_fencers =
                 defender->is_player()
-                    && player_equip_unrand(UNRAND_FENCERS)
+                    && you.unrand_equipped(UNRAND_FENCERS)
                     && (!defender->weapon()
                         || is_melee_weapon(*defender->weapon()));
     if (using_fencers
@@ -530,7 +530,7 @@ void melee_attack::try_parry_disarm()
         && defender->is_monster()
         && defender->alive()
         && you.rev_percent() > FULL_REV_PERCENT
-        && you.wearing_ego(EQ_GIZMO, SPGIZMO_PARRYREV)
+        && you.wearing_ego(OBJ_GIZMOS, SPGIZMO_PARRYREV)
         && one_chance_in(50 + defender->get_experience_level() * 2
                          - you.get_experience_level()))
     {
@@ -787,7 +787,7 @@ bool melee_attack::handle_phase_damaged()
 
     if (attacker->is_player())
     {
-        if (player_equip_unrand(UNRAND_POWER_GLOVES))
+        if (you.unrand_equipped(UNRAND_POWER_GLOVES))
             inc_mp(div_rand_round(damage_done, 8));
         if (you.form == transformation::death && defender->alive()
             && defender->is_monster())
@@ -1307,7 +1307,7 @@ bool melee_attack::attack()
     if (attacker->is_player() && attacker != defender)
     {
         set_attack_conducts(conducts, *defender->as_monster(),
-                            you.can_see(*defender));
+                            you.can_see(*defender) && !you.duration[DUR_VEXED]);
 
         if (player_under_penance(GOD_ELYVILON)
             && god_hates_your_god(GOD_ELYVILON)
@@ -1811,6 +1811,20 @@ public:
     }
 };
 
+class AuxFisticloak: public AuxAttackType
+{
+public:
+    AuxFisticloak()
+    : AuxAttackType(9, 100, "shroompunch") { };
+
+    bool xl_based_chance() const override { return false; }
+
+    bool is_usable() const override
+    {
+        return false;   // Only usable by the fisticloak world_reacts function
+    }
+};
+
 static const AuxConstrict   AUX_CONSTRICT = AuxConstrict();
 static const AuxKick        AUX_KICK = AuxKick();
 static const AuxPeck        AUX_PECK = AuxPeck();
@@ -1823,6 +1837,7 @@ static const AuxPseudopods  AUX_PSEUDOPODS = AuxPseudopods();
 static const AuxTentacles   AUX_TENTACLES = AuxTentacles();
 static const AuxMaw         AUX_MAW = AuxMaw();
 static const AuxBlades      AUX_EXECUTIONER_BLADE = AuxBlades();
+static const AuxFisticloak  AUX_FUNGAL_FISTICLOAK = AuxFisticloak();
 
 static const AuxAttackType* const aux_attack_types[] =
 {
@@ -1838,6 +1853,7 @@ static const AuxAttackType* const aux_attack_types[] =
     &AUX_TENTACLES,
     &AUX_MAW,
     &AUX_EXECUTIONER_BLADE,
+    &AUX_FUNGAL_FISTICLOAK,
 };
 
 
@@ -2084,6 +2100,11 @@ bool melee_attack::player_aux_apply(unarmed_attack_type atk)
     {
         handle_phase_killed();
         return true;
+    }
+    else if (atk == UNAT_FUNGAL_FISTICLOAK && !defender->is_unbreathing()
+            && one_chance_in(3))
+    {
+        defender->confuse(attacker, 5);
     }
 
     return false;
@@ -2845,7 +2866,7 @@ bool melee_attack::player_good_stab()
 {
     return wpn_skill == SK_SHORT_BLADES
            || you.get_mutation_level(MUT_PAWS)
-           || player_equip_unrand(UNRAND_HOOD_ASSASSIN)
+           || you.unrand_equipped(UNRAND_HOOD_ASSASSIN)
               && (!weapon || is_melee_weapon(*weapon));
 }
 
@@ -3081,7 +3102,7 @@ bool melee_attack::mons_attack_effects()
         const bool slippery = defender->is_player()
                           && adjacent(attacker->pos(), defender->pos())
                           && !player_stair_delay() // feet otherwise occupied
-                          && player_equip_unrand(UNRAND_SLICK_SLIPPERS);
+                          && you.unrand_equipped(UNRAND_SLICK_SLIPPERS);
         if (attacker != defender && !is_projected
             && (attk_flavour == AF_TRAMPLE
                 || slippery && attk_flavour != AF_DRAG))
@@ -3261,18 +3282,6 @@ void melee_attack::mons_apply_attack_flavour()
                          def_name(DESC_ITS).c_str());
                 }
             }
-        }
-        break;
-
-    case AF_DRAIN_STR:
-    case AF_DRAIN_INT:
-    case AF_DRAIN_DEX:
-        if (one_chance_in(20) || one_chance_in(3))
-        {
-            stat_type drained_stat = (flavour == AF_DRAIN_STR ? STAT_STR :
-                                      flavour == AF_DRAIN_INT ? STAT_INT
-                                                              : STAT_DEX);
-            defender->drain_stat(drained_stat, 1);
         }
         break;
 
@@ -3765,6 +3774,25 @@ void melee_attack::mons_apply_attack_flavour()
 
     case AF_BOMBLET:
         monarch_deploy_bomblet(*attacker->as_monster(), defender->pos());
+        break;
+
+    case AF_AIRSTRIKE:
+        const int spaces = airstrike_space_around(defender->pos(), true);
+        const int min = pow(attacker->get_hit_dice(), 1.2) * (spaces + 3) / 6;
+        const int max = pow(attacker->get_hit_dice() + 1, 1.2) * (spaces + 4) / 6;
+        special_damage = defender->apply_ac(random_range(min, max), 0);
+
+        if (needs_message && special_damage)
+        {
+            // XXX: VFX during regular melee is distracting, but players not
+            // respecting the mechanic will get quite bodied. Hrm.
+            tileidx_t generic = TILE_BOLT_DEFAULT_WHITE;
+
+            mprf("%s and strikes %s%s",
+                 airstrike_intensity_display(spaces, generic).c_str(),
+                 defender->name(DESC_THE).c_str(),
+                 attack_strength_punctuation(special_damage).c_str());
+        }
         break;
 
     }

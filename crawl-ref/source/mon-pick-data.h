@@ -30,7 +30,7 @@
   {  0, 11,   40, FLAT, MONS_FLAYED_GHOST },\
   {  0, 13,   80, SEMI, MONS_GLOWING_SHAPESHIFTER },\
   {  0, 13,   80, SEMI, MONS_TENGU_REAVER },\
-  {  0, 13,   60, SEMI, MONS_SPHINX },\
+  {  0, 13,   60, SEMI, MONS_GUARDIAN_SPHINX },\
   {  1,  7,  135, SEMI, MONS_SPRIGGAN_AIR_MAGE },\
   {  1,  7,  185, SEMI, MONS_SPRIGGAN_BERSERKER },\
   {  1,  9,   45, FLAT, MONS_GLASS_EYE },\
@@ -41,6 +41,7 @@
   {  3, 13,   20, FLAT, MONS_QUICKSILVER_DRAGON },\
   {  3, 13,   40, FLAT, MONS_IRON_DRAGON },\
   {  3, 13,   80, SEMI, MONS_GOLDEN_DRAGON },\
+  {  3, 15,   45, SEMI, MONS_WYRMHOLE },\
   {  3, 13,   50, RISE, MONS_FROSTBOUND_TOME },\
   {  3, 13,   50, RISE, MONS_EARTHEN_TOME },\
   {  3, 13,   50, RISE, MONS_CRYSTAL_TOME },\
@@ -174,13 +175,13 @@ static const vector<pop_entry> population[] =
   { 18, 28,  180, PEAK, MONS_FLAYED_GHOST },
   { 19, 25,   35, PEAK, MONS_ORC_HIGH_PRIEST },
   { 19, 26,  136, SEMI, MONS_DEEP_TROLL },
-  { 19, 27,   89, RISE, MONS_SPHINX },
+  { 19, 27,   25, PEAK, MONS_ORC_SORCERER },
   { 20, 30,  310, FALL, MONS_YAKTAUR_CAPTAIN },
   { 20, 30,  136, SEMI, MONS_FIRE_GIANT },
   { 20, 30,  136, SEMI, MONS_FROST_GIANT },
-  { 21, 27,   25, PEAK, MONS_ORC_SORCERER },
   { 21, 27,  310, FALL, MONS_STONE_GIANT },
   { 21, 31,  192, PEAK, MONS_ETTIN },
+  { 22, 27,  100, RISE, MONS_SPHINX_MARAUDER },
   { 22, 30,  136, SEMI, MONS_DEEP_TROLL_EARTH_MAGE },
   { 23, 27,   89, RISE, MONS_STORM_DRAGON },
   { 23, 27,   28, SEMI, MONS_ORC_WARLORD },
@@ -370,10 +371,11 @@ static const vector<pop_entry> population[] =
   {  1,  4,  300, FLAT, MONS_MERFOLK_SIREN },
   {  1,  4,  195, FLAT, MONS_WATER_ELEMENTAL },
   {  1,  4,  275, FLAT, MONS_WIND_DRAKE },
-  {  1,  4,  200, FLAT, MONS_HARPY },
+  {  1,  4,  190, FLAT, MONS_HARPY },
   {  1,  7,  135, PEAK, MONS_MERFOLK_JAVELINEER },
   {  1,  7,  110, PEAK, MONS_ALLIGATOR_SNAPPING_TURTLE },
   {  2,  4,  190, SEMI, MONS_SATYR },
+  {  2,  7,   80, SEMI, MONS_SPHINX_MARAUDER },
   {  3,  7,   30, PEAK, MONS_FORMLESS_JELLYFISH },
 },
 
@@ -509,7 +511,8 @@ static const vector<pop_entry> population[] =
   {  1,  4,   50, RISE, MONS_ORC_WARLORD },
   // Top-tier threats:
   {  1,  4,  350, RISE, MONS_PEACEKEEPER },
-  {  1,  4,  300, RISE, MONS_SPHINX },
+  {  1,  4,  225, RISE, MONS_SPHINX_MARAUDER },
+  {  2,  4,  115, RISE, MONS_GUARDIAN_SPHINX },
 
   // Vaults:5 enemies. These weights are very roughly based on
   // the monster frequency as of 0.26.
@@ -546,15 +549,12 @@ static const vector<pop_entry> population[] =
   {  5, 12,  750, FALL, MONS_GLOWING_SHAPESHIFTER },
   {  5, 12,  600, FALL, MONS_TENGU_REAVER },
   {  5, 12,  330, FALL, MONS_VERY_UGLY_THING },
-  {  5, 12,  260, FALL, MONS_SPHINX },
+  {  5, 12,  260, FALL, MONS_GUARDIAN_SPHINX },
   {  5, 12,  260, FALL, MONS_WAR_GARGOYLE },
   {  5, 12,  300, FALL, MONS_POLTERGUARDIAN },
-  // V:5 chaff we should really get rid of
+  // V:5 chaff from earlier floors
   {  5,  5,  650, FLAT, MONS_ORC_KNIGHT },
-  {  5,  5,   60, FLAT, MONS_REDBACK },
-  {  5,  5,   60, FLAT, MONS_WOLF_SPIDER },
-  {  5,  5,   60, FLAT, MONS_HORNET },
-  {  5,  5,   60, FLAT, MONS_HARPY },
+  {  5,  5,  180, FLAT, MONS_FORMLESS_JELLYFISH },
   {  5,  5,   60, FLAT, MONS_DANCING_WEAPON },
   {  5,  5,   60, FLAT, MONS_GREAT_ORB_OF_EYES },
 
@@ -693,14 +693,16 @@ POP_DEPTHS,
   // "branch flavour" threats
   {  1,  7,  450, SEMI, MONS_BALRUG },
   {  7, 14,  450, FALL, MONS_BALRUG },
+  {  1,  7,   30, FLAT, MONS_CREEPING_INFERNO },
   {  1,  7,  450, SEMI, MONS_SEARING_WRETCH },
   {  7, 14,  450, FALL, MONS_SEARING_WRETCH },
+  {  1,  7,  300, SEMI, MONS_HELLEPHANT },
+  {  8, 14,  300, FALL, MONS_HELLEPHANT },
   // cut these off for deep super-ood
-  {  1, 12,   70, FLAT, MONS_STOKER },
-  {  1, 12,   30, FLAT, MONS_CREEPING_INFERNO },
+  {  1, 10,   70, FLAT, MONS_STOKER },
   // "top tier" signature threats
-  {  1,  7,  400, RISE, MONS_HELLEPHANT },
-  {  8, 14,  400, FLAT, MONS_HELLEPHANT },
+  {  1,  8,  225, RISE, MONS_ONI_INCARCERATOR },
+  {  9, 14,  225, FLAT, MONS_ONI_INCARCERATOR },
   {  1, 14,  400, RISE, MONS_BRIMSTONE_FIEND },
 },
 
@@ -814,7 +816,6 @@ POP_DEPTHS,
 
   {  1,  4,   25, FALL, MONS_CRIMSON_IMP },
   {  1,  4,  180, FALL, MONS_WHITE_IMP },
-  {  1,  4,  180, FALL, MONS_QUASIT },
   {  1,  4,  180, FALL, MONS_UFETUBUS },
   {  1,  4,  180, FALL, MONS_IRON_IMP },
   {  1,  4,   25, FALL, MONS_SHADOW_IMP },
@@ -1318,8 +1319,9 @@ COMPILE_CHECK(ARRAYSZ(population_water) == NUM_BRANCHES);
 #define HELL_LAVA_POP {\
   {  1,  8,   300, FALL, MONS_NO_MONSTER }, \
   {  1,  7,    50, RISE, MONS_STOKER },\
-  {  1,  7,    50, FLAT, MONS_CREEPING_INFERNO },\
-  {  1,  7,   100, FLAT, MONS_NO_MONSTER },\
+  {  1,  7,    60, FLAT, MONS_CREEPING_INFERNO },\
+  {  1,  7,    20, FLAT, MONS_SEARING_WRETCH },\
+  {  1,  7,    70, FLAT, MONS_NO_MONSTER },\
 }
 
 // This is done to avoid duplicating the Depths list and can be

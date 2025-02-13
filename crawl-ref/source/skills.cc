@@ -263,7 +263,7 @@ void reassess_starting_skills()
         you.skill_points[sk] = you.skills[sk] ?
             skill_exp_needed(you.skills[sk], sk, SP_HUMAN) + 1 : 0;
 
-        item_def* current_armour = you.slot_item(EQ_BODY_ARMOUR);
+        item_def* current_armour = you.body_armour();
 
         // No one who can't wear mundane heavy armour should start with
         // the Armour skill -- D:1 dragon armour is too unlikely.
@@ -271,7 +271,7 @@ void reassess_starting_skills()
         // wanderers starting with acid dragon scales.
         if (sk == SK_DODGING && you.skills[SK_ARMOUR]
             && (is_useless_skill(SK_ARMOUR)
-                || you_can_wear(EQ_BODY_ARMOUR) != true)
+                || you_can_wear(SLOT_BODY_ARMOUR) != true)
             && !(current_armour
                  && current_armour->sub_type == ARM_ACID_DRAGON_ARMOUR))
         {
@@ -1928,6 +1928,8 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
                 result = claw_and_tooth_titles[skill_rank];
             else if (species == SP_OCTOPODE && skill_rank == 5)
                 result = "Crusher";
+            else if (species == SP_ONI && skill_rank == 5)
+                result = "Yokozuna";
             else if (!dex_better && species == SP_DJINNI && skill_rank == 5)
                 result = "Weightless Champion";
             else
@@ -1997,6 +1999,13 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
                 result = "Corpseflower";
             else if (god == GOD_KIKUBAAQUDGHA)
                 result = god_title(god, species, piety);
+            break;
+
+        case SK_FORGECRAFT:
+            if (species == SP_ONI && skill_rank == 4)
+                result = "Brimstone Smiter";
+            else if (species == SP_ONI && skill_rank == 5)
+                result = "Titancaster";
             break;
 
         case SK_SUMMONINGS:

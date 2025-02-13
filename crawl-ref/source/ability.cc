@@ -857,8 +857,8 @@ bool string_matches_ability_name(const string& key)
 
 static bool _invis_causes_drain()
 {
-    return !player_equip_unrand(UNRAND_AMULET_INVISIBILITY)
-               && !player_equip_unrand(UNRAND_SCARF_INVISIBILITY);
+    return !you.unrand_equipped(UNRAND_AMULET_INVISIBILITY)
+               && !you.unrand_equipped(UNRAND_SCARF_INVISIBILITY);
 }
 
 /**
@@ -929,8 +929,6 @@ string nemelex_card_text(ability_type ability)
         return make_stringf("(%d in deck)", cards);
 }
 
-static const int VAMPIRE_BAT_FORM_STAT_DRAIN = 2;
-
 static string _ashenzari_curse_text()
 {
     const CrawlVector& curses = you.props[CURSE_KNOWLEDGE_KEY].get_vector();
@@ -954,12 +952,6 @@ const string make_cost_description(ability_type ability)
     if (ability == ABIL_HEAL_WOUNDS)
         ret += make_stringf(", Permanent MP (%d left)", get_real_mp(false));
 #endif
-
-    if (ability == ABIL_TRAN_BAT)
-    {
-        ret += make_stringf(", Stat Drain (%d each)",
-                            VAMPIRE_BAT_FORM_STAT_DRAIN);
-    }
 
     if (ability == ABIL_REVIVIFY)
         ret += ", Frailty";
@@ -1838,42 +1830,6 @@ static bool _check_ability_possible(const ability_def& abil, bool quiet = false)
         return false;
     }
 
-    // Doing these would outright kill the player.
-    // (or, in the case of the stat-zeros, they'd at least be extremely
-    // dangerous.)
-    if (abil.ability == ABIL_END_TRANSFORMATION
-        || abil.ability == ABIL_BEGIN_UNTRANSFORM)
-    {
-        const auto form = abil.ability == ABIL_END_TRANSFORMATION ?
-                            you.default_form : transformation::none;
-        if (feat_dangerous_for_form(form, env.grid(you.pos())))
-        {
-            if (!quiet)
-            {
-                mprf("Turning back right now would cause you to %s!",
-                    env.grid(you.pos()) == DNGN_LAVA ? "burn" : "drown");
-            }
-
-            return false;
-        }
-    }
-    else if ((abil.ability == ABIL_EXSANGUINATE
-              || abil.ability == ABIL_REVIVIFY)
-            && you.form != transformation::none)
-    {
-        if (feat_dangerous_for_form(transformation::none, env.grid(you.pos())))
-        {
-            if (!quiet)
-            {
-                mprf("Becoming %s right now would cause you to %s!",
-                    abil.ability == ABIL_EXSANGUINATE ? "bloodless" : "alive",
-                    env.grid(you.pos()) == DNGN_LAVA ? "burn" : "drown");
-            }
-
-            return false;
-        }
-    }
-
     if (abil.ability == ABIL_TROG_BERSERK
         && !you.can_go_berserk(true, false, quiet))
     {
@@ -2041,9 +1997,6 @@ static bool _check_ability_possible(const ability_def& abil, bool quiet = false)
             && !you.duration[DUR_POISONING]
             && !you.duration[DUR_CONF] && !you.duration[DUR_SLOW]
             && !you.petrifying()
-            && you.strength(false) == you.max_strength()
-            && you.intel(false) == you.max_intel()
-            && you.dex(false) == you.max_dex()
             && !player_drained()
             && !you.duration[DUR_WEAK])
         {
@@ -2523,24 +2476,6 @@ static bool _check_ability_possible(const ability_def& abil, bool quiet = false)
     }
 }
 
-static bool _check_ability_dangerous(const ability_type ability,
-                                     bool quiet = false)
-{
-    if (ability == ABIL_TRAN_BAT)
-        return !check_form_stat_safety(transformation::bat, quiet);
-    if (ability == ABIL_END_TRANSFORMATION
-        && !feat_dangerous_for_form(you.default_form, env.grid(you.pos())))
-    {
-        return !check_form_stat_safety(you.default_form, quiet);
-    }
-    if (ability == ABIL_BEGIN_UNTRANSFORM
-        && !feat_dangerous_for_form(transformation::none, env.grid(you.pos())))
-    {
-        return !check_form_stat_safety(transformation::none, quiet);
-    }
-    return false;
-}
-
 bool check_ability_possible(const ability_type ability, bool quiet)
 {
     return _check_ability_possible(get_ability_def(ability), quiet);
@@ -2774,7 +2709,7 @@ bool activate_talent(const talent& tal, dist *target)
     if (!target)
         target = &target_local;
 
-    if (_check_ability_dangerous(abil.ability) || !_check_ability_possible(abil))
+    if (!_check_ability_possible(abil))
     {
         crawl_state.zero_turns_taken();
         return false;
@@ -2880,7 +2815,7 @@ bool activate_talent(const talent& tal, dist *target)
             // even if that's just a cooldown or small amounts of HP.
             // No rapidly wall-jumping or renaming your ancestor, alas.
             if (is_religious_ability(abil.ability)
-                && (abil.piety_cost > 0 || (abil.flags & abflag::exhaustion)
+                && (abil.piety_cost || (abil.flags & abflag::exhaustion)
                     || (abil.flags & abflag::max_hp_drain)
                     || (abil.ability == ABIL_ZIN_RECITE)
                     || (abil.flags & abflag::card) || (abil.flags & abflag::gold)
@@ -2942,87 +2877,6 @@ static bool _cleansing_flame_affects(const actor *act)
 {
     return act->res_holy_energy() < 3
            && !never_harm_monster(&you, act->as_monster());
-}
-
-static string _vampire_str_int_info_blurb(string stats_affected)
-{
-    return make_stringf("This will reduce your %s to zero. ",
-                        stats_affected.c_str());
-}
-
-/*
- * Create a string which informs the player of the consequences of bat form.
- *
- * @param str_affected Whether the player will cause strength stat zero by
- * Bat Form's stat drain ability cost.
- * @param dex_affected Whether the player will cause dexterity stat zero by
- * Bat Form's stat drain ability cost, disregarding Bat Form's dexterity boost.
- * @param int_affected Whether the player will cause intelligence stat zero by
- * Bat Form's stat drain ability cost.
- * @returns The string prompt to give the player.
- */
-static string _vampire_bat_transform_prompt(bool str_affected, bool dex_affected,
-                                            bool intel_affected)
-{
-    string prompt = "";
-
-    if (str_affected && intel_affected)
-        prompt += _vampire_str_int_info_blurb("strength and intelligence");
-    else if (str_affected)
-        prompt += _vampire_str_int_info_blurb("strength");
-    else if (intel_affected)
-        prompt += _vampire_str_int_info_blurb("intelligence");
-
-    // Bat form's dexterity boost will keep a vampire's dexterity above zero until
-    // they untransform.
-    if (dex_affected)
-        prompt += "This will reduce your dexterity to zero once you untransform. ";
-
-    prompt += "Continue?";
-
-    return prompt;
-}
-
-static bool _stat_affected_by_bat_form_stat_drain(int stat_value)
-{
-    // We check whether the stat is greater than zero to avoid prompting if a
-    // stat is already zero.
-    return 0 < stat_value && stat_value <= VAMPIRE_BAT_FORM_STAT_DRAIN;
-}
-
-/*
- * Give the player a chance to cancel a bat form transformation which could
- * cause their stats to be drained to zero.
- *
- * @returns Whether the player canceled the transformation.
- */
-static bool _player_cancels_vampire_bat_transformation()
-{
-
-    bool str_affected = _stat_affected_by_bat_form_stat_drain(you.strength());
-    bool dex_affected = _stat_affected_by_bat_form_stat_drain(you.dex());
-    bool intel_affected = _stat_affected_by_bat_form_stat_drain(you.intel());
-
-    // Don't prompt if there's no risk of stat-zero
-    if (!str_affected && !dex_affected && !intel_affected)
-        return false;
-
-    string prompt = _vampire_bat_transform_prompt(str_affected, dex_affected,
-                                                  intel_affected);
-
-    bool proceed_with_transformation = yesno(prompt.c_str(), false, 'n');
-
-    if (!proceed_with_transformation)
-        canned_msg(MSG_OK);
-
-    return !proceed_with_transformation;
-}
-
-static void _cause_vampire_bat_form_stat_drain()
-{
-    lose_stat(STAT_STR, VAMPIRE_BAT_FORM_STAT_DRAIN);
-    lose_stat(STAT_INT, VAMPIRE_BAT_FORM_STAT_DRAIN);
-    lose_stat(STAT_DEX, VAMPIRE_BAT_FORM_STAT_DRAIN);
 }
 
 static int _orb_of_dispater_power()
@@ -3343,10 +3197,22 @@ static spret _do_ability(const ability_def& abil, bool fail, dist *target,
         break;
 
     case ABIL_END_TRANSFORMATION:
+        if (feat_dangerous_for_form(you.default_form, env.grid(you.pos())))
+        {
+            mprf("Turning back right now would cause you to %s!",
+                    env.grid(you.pos()) == DNGN_LAVA ? "burn" : "drown");
+            return spret::abort;
+        }
         return_to_default_form();
         break;
 
     case ABIL_BEGIN_UNTRANSFORM:
+        if (feat_dangerous_for_form(transformation::none, env.grid(you.pos())))
+        {
+            mprf("Turning back right now would cause you to %s!",
+                    env.grid(you.pos()) == DNGN_LAVA ? "burn" : "drown");
+            return spret::abort;
+        }
         if (!i_feel_safe(true) && !yesno("Still begin untransforming?", true, 'n'))
         {
             canned_msg(MSG_OK);
@@ -3781,18 +3647,26 @@ static spret _do_ability(const ability_def& abil, bool fail, dist *target,
         return fedhas_grow_oklob(beam.target, fail);
 
     case ABIL_TRAN_BAT:
-        if (_player_cancels_vampire_bat_transformation())
-            return spret::abort;
         fail_check();
         transform(100, transformation::bat);
-        _cause_vampire_bat_form_stat_drain();
         break;
 
     case ABIL_EXSANGUINATE:
+        if (feat_dangerous_for_form(transformation::none, env.grid(you.pos())))
+        {
+            mprf("Becoming bloodless right now would cause you to %s!",
+                    env.grid(you.pos()) == DNGN_LAVA ? "burn" : "drown");
+            return spret::abort;
+        }
         start_delay<ExsanguinateDelay>(5);
         break;
 
     case ABIL_REVIVIFY:
+        if (feat_dangerous_for_form(transformation::none, env.grid(you.pos())))
+        {
+            mprf("Becoming alive right now would cause you to %s!",
+                    env.grid(you.pos()) == DNGN_LAVA ? "burn" : "drown");
+        }
         start_delay<RevivifyDelay>(5);
         break;
 
@@ -4147,8 +4021,6 @@ int choose_ability_menu(const vector<talent>& talents)
                 me->colour = COL_INAPPLICABLE;
                 me->add_tile(tile_def(TILEI_MESH));
             }
-            else if (_check_ability_dangerous(talents[i].which, true))
-                me->colour = COL_DANGEROUS;
             abil_menu.add_entry(me);
         }
     }
@@ -4177,8 +4049,6 @@ int choose_ability_menu(const vector<talent>& talents)
                     me->colour = COL_INAPPLICABLE;
                     me->add_tile(tile_def(TILEI_MESH));
                 }
-                else if (_check_ability_dangerous(talents[i].which, true))
-                    me->colour = COL_DANGEROUS;
                 abil_menu.add_entry(me);
             }
         }
@@ -4331,10 +4201,10 @@ bool player_has_ability(ability_type abil, bool include_unusable)
         return you.evokable_invis()
                && !you.get_mutation_level(MUT_NO_ARTIFICE);
     case ABIL_EVOKE_DISPATER:
-        return player_equip_unrand(UNRAND_DISPATER)
+        return you.unrand_equipped(UNRAND_DISPATER)
                && !you.has_mutation(MUT_NO_ARTIFICE);
     case ABIL_EVOKE_OLGREB:
-        return player_equip_unrand(UNRAND_OLGREB)
+        return you.unrand_equipped(UNRAND_OLGREB)
                && !you.has_mutation(MUT_NO_ARTIFICE);
     default:
         // removed abilities handled here
@@ -4609,6 +4479,10 @@ int find_ability_slot(const ability_type abil, char firstletter)
 
     case ABIL_IMPRINT_WEAPON:
         first_slot = letter_to_index('w');
+        break;
+
+    case ABIL_RENOUNCE_RELIGION:
+        first_slot = letter_to_index('X');
         break;
 
 #ifdef WIZARD

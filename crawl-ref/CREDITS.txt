@@ -84,6 +84,7 @@
     Aj Adamson
     Nikhil Addleman
     adelrune
+    Ahyangyi
     Alcon
     Brandon Allbery
     Warwick Allison
@@ -180,6 +181,7 @@
     Robert Faulk
     Floodkiller
     floraline
+    Flugkiller
     Brett Foster
     Kyle Fox
     Perry Fraser
@@ -189,6 +191,7 @@
     Ge0ff
     Joshua Gelbard
     Peter Gerlagh
+    Charlie Gettys
     Benoît Giannangeli
     Gittourarmy
     Ben Goetter
@@ -211,7 +214,6 @@
     Anders Heggestøyl
     Alex Henry
     R. Dan Henry
-    Max 'Ploomutoo' Hon-Anderson
     Chris Honey
     Sylvia 'Onia' Hörnke
     Benoit Hudson
@@ -330,6 +332,7 @@
     pianoman523
     pikaro
     Lemuel Pitkin
+    valerie "ploomutoo"
     Paul Pollack
     Poroing
     Iago Porto

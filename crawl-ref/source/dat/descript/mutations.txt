@@ -423,10 +423,11 @@ first come into sight. All of your shouts are also louder than usual. The
 second level of this mutation makes this urge harder to resist and makes your
 shouts even louder.
 %%%%
-deterioration mutation
+poor constitution mutation
 
-When injured, your body sometimes deteriorates, temporarily reducing your
-attributes. The second level of this mutation makes this happen more often.
+Your body reacts poorly to injury; when you suffer damage, you have a chance for
+your attacks to become weakened for a short while. The second level of this
+mutation sometimes additionally causes this to slow you as well.
 %%%%
 berserk mutation
 
@@ -471,7 +472,8 @@ grants you immunity to miasma (from any source).
 spiny mutation
 
 Foes who strike you in melee have a 50% chance of being impaled on your spines,
-taking damage. Each level of this mutation increases the damage.
+taking damage. Each level of this mutation increases the damage. This mutation
+also grants you immunity to constriction.
 %%%%
 augmentation mutation
 
@@ -665,10 +667,9 @@ damage in the same way as a human with a short blade might.
 four strong arms mutation
 
 You have two pairs of two arms, allowing you to wield two-handed weapons with
-one pair and a shield with the other. You can even wield extremely large
-weapons like giant clubs, though this takes both arm-pairs. The secondary arms
-in each pair are oddly shaped, preventing you from wearing an extra set of
-gloves or magical rings.
+one pair and a shield with the other, as well as wear a second pair of gloves.
+You can even wield extremely large weapons like giant clubs, though this takes
+both arm-pairs.
 %%%%
 retaliatory headbutt mutation
 

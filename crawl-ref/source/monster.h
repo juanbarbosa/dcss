@@ -284,34 +284,27 @@ public:
                              bool rescale = true) const override;
     int         has_claws(bool allow_tran = true) const override;
 
-    int wearing(equipment_type slot, int type) const override;
-    int wearing_ego(equipment_type slot, int type) const override;
+    int wearing(object_class_type obj_type, int sub_type,
+                bool count_plus = 0, bool check_attuned = false) const override;
+    int wearing_ego(object_class_type obj_type, int ego) const override;
     int scan_artefacts(artefact_prop_type which_property,
                        vector<const item_def *> *_unused_matches = nullptr) const
         override;
+    bool unrand_equipped(int unrand_index, bool include_melded = false) const override;
 
-    item_def *slot_item(equipment_type eq, bool include_melded=false) const
-        override;
     item_def *mslot_item(mon_inv_type sl) const;
     item_def *weapon(int which_attack = -1) const override;
     item_def *launcher() const;
     item_def *melee_weapon() const;
     item_def *missiles() const;
     item_def *shield() const override;
+    item_def *body_armour() const override;
     item_def *get_defining_object() const;
 
     hands_reqd_type hands_reqd(const item_def &item,
                                bool base = false) const override;
 
-    bool      can_wield(const item_def &item,
-                        bool ignore_curse = false,
-                        bool ignore_brand = false,
-                        bool ignore_shield = false,
-                        bool ignore_transform = false) const override;
-    bool      could_wield(const item_def &item,
-                          bool ignore_brand = false,
-                          bool ignore_transform = false,
-                          bool quiet = true) const override;
+    bool      could_wield(const item_def &item) const;
 
     void      wield_melee_weapon(maybe_bool msg = maybe_bool::maybe);
     void      swap_weapons(maybe_bool msg = maybe_bool::maybe);
@@ -485,6 +478,7 @@ public:
     void paralyse(const actor *, int str, string source = "") override;
     void petrify(const actor *, bool force = false) override;
     bool fully_petrify(bool quiet = false) override;
+    bool vex(const actor *who, int duration, string source = "") override;
     void slow_down(actor *, int str) override;
     void confuse(actor *, int strength) override;
     bool drain(const actor *, bool quiet = false, int pow = 3) override;
@@ -501,7 +495,7 @@ public:
              bool attacker_effects = true) override;
     bool heal(int amount) override;
     void blame_damage(const actor *attacker, int amount);
-    void blink() override;
+    void blink(bool ignore_stasis = false) override;
     void teleport(bool right_now = false,
                   bool wizard_tele = false) override;
     bool shift(coord_def p = coord_def(0, 0));

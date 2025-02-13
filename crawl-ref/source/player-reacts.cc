@@ -187,9 +187,6 @@ static void _decrement_petrification(int delay)
         mprf(MSGCH_DURATION, "You turn to %s%s.",
              flesh_equiv.c_str(),
              you.paralysed() ? "" : " and can act again");
-
-        if (you.props.exists(PETRIFIED_BY_KEY))
-            you.props.erase(PETRIFIED_BY_KEY);
     }
 
     if (you.duration[DUR_PETRIFYING])
@@ -218,8 +215,6 @@ static void _decrement_attraction(int delay)
 
 static void _decrement_paralysis(int delay)
 {
-    _decrement_a_duration(DUR_PARALYSIS_IMMUNITY, delay);
-
     if (!you.duration[DUR_PARALYSIS])
         return;
 
@@ -228,17 +223,7 @@ static void _decrement_paralysis(int delay)
     if (you.duration[DUR_PARALYSIS])
         return;
 
-    if (you.props.exists(PARALYSED_BY_KEY))
-        you.props.erase(PARALYSED_BY_KEY);
-
-    const int immunity = roll_dice(1, 3) * BASELINE_DELAY;
-    you.duration[DUR_PARALYSIS_IMMUNITY] = immunity;
-    if (you.petrified())
-    {
-        // no chain paralysis + petrification combos!
-        you.duration[DUR_PARALYSIS_IMMUNITY] += you.duration[DUR_PETRIFIED];
-        return;
-    }
+    you.give_stun_immunity(random_range(1, 3));
 
     mprf(MSGCH_DURATION, "You can act again.");
     you.redraw_armour_class = true;
@@ -460,6 +445,7 @@ void player_reacts_to_monsters()
         detect_items(-1);
     }
 
+    _decrement_a_duration(DUR_STUN_IMMUNITY, you.time_taken);
     _decrement_attraction(you.time_taken);
     _decrement_paralysis(you.time_taken);
     _decrement_petrification(you.time_taken);
@@ -730,19 +716,6 @@ static void _decrement_durations()
     dec_berserk_recovery_player(delay);
     dec_haste_player(delay);
 
-    for (int i = 0; i < NUM_STATS; ++i)
-    {
-        stat_type s = static_cast<stat_type>(i);
-        if (you.stat(s) > 0
-            && _decrement_a_duration(stat_zero_duration(s), delay))
-        {
-            mprf(MSGCH_RECOVERY, "Your %s has recovered.", stat_desc(s, SD_NAME));
-            you.redraw_stats[s] = true;
-            if (you.duration[DUR_SLOW] == 0)
-                mprf(MSGCH_DURATION, "You feel yourself speed up.");
-        }
-    }
-
     // Leak piety from the piety pool into actual piety.
     // Note that changes of religious status without corresponding actions
     // (killing monsters, offering items, ...) might be confusing for characters
@@ -963,11 +936,11 @@ static void _maybe_attune_items(bool attune_regen, bool attune_mana_regen)
     bool gained_regen = false;
     bool gained_mana_regen = false;
 
-    for (int slot = EQ_MIN_ARMOUR; slot <= EQ_MAX_WORN; ++slot)
+    for (player_equip_entry& entry : you.equipment.items)
     {
-        if (you.melded[slot] || you.equip[slot] == -1 || you.activated[slot])
+        if (entry.melded || entry.attuned || entry.is_overflow)
             continue;
-        const item_def &arm = you.inv[you.equip[slot]];
+        const item_def &arm = entry.get_item();
 
         if ((attune_regen && is_regen_item(arm)
              && (you.magic_points == you.max_magic_points || !is_mana_regen_item(arm)))
@@ -981,17 +954,12 @@ static void _maybe_attune_items(bool attune_regen, bool attune_mana_regen)
                 gained_mana_regen = true;
 
             eq_list.push_back(is_artefact(arm) ? get_artefact_name(arm) :
-                slot == EQ_AMULET ? "amulet" :
-                slot != EQ_BODY_ARMOUR ?
-                    item_slot_name(static_cast<equipment_type>(slot)) :
-                    "armour");
+                entry.slot == SLOT_AMULET ? "amulet" :
+                    lowercase_string(equip_slot_name(entry.slot, true)));
 
-            if (slot == EQ_BOOTS && arm.sub_type != ARM_BARDING
-                || slot == EQ_GLOVES)
-            {
+            if (entry.slot == SLOT_BOOTS || entry.slot == SLOT_GLOVES)
                 plural = true;
-            }
-            you.activated.set(slot);
+            entry.attuned = true;
         }
     }
 
@@ -1102,8 +1070,7 @@ void player_reacts()
     mprf(MSGCH_DIAGNOSTICS, "stealth: %d", stealth);
 #endif
 
-    if (you.unrand_reacts.any())
-        unrand_reacts();
+    unrand_reacts();
 
     _handle_fugue(you.time_taken);
     if (you.has_mutation(MUT_WARMUP_STRIKES))

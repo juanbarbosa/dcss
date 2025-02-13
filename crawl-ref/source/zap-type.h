@@ -177,5 +177,8 @@ enum zap_type
     ZAP_SHADOW_SHOT,
     ZAP_BOLAS,
     ZAP_MERCURY_ARROW,
+    ZAP_SOJOURNING,
+    ZAP_FREEZE,
+    ZAP_VEX,
     NUM_ZAPS
 };

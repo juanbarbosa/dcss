@@ -12,6 +12,7 @@
 #include "fight.h" // spines_damage
 #include "item-name.h"
 #include "item-prop.h"
+#include "items.h"
 #include "los.h"
 #include "mapdef.h" // item_list
 #include "message.h"
@@ -316,12 +317,6 @@ static string mi_calc_major_healing(monster* mons)
     return make_stringf("%d-%d", min, max);
 }
 
-static string mi_calc_freeze_damage(monster* mons)
-{
-    const int pow = mons_power_for_hd(SPELL_FREEZE, mons->get_hit_dice());
-    return dice_def_string(freeze_damage(pow, false));
-}
-
 static string mi_calc_scorch_damage(monster* mons)
 {
     const int pow = mons_power_for_hd(SPELL_SCORCH, mons->get_hit_dice());
@@ -354,8 +349,6 @@ static string mons_human_readable_spell_damage_string(monster* monster,
         case SPELL_PORTAL_PROJECTILE:
         case SPELL_LRD:
             return ""; // Fake damage beam
-        case SPELL_FREEZE:
-            return mi_calc_freeze_damage(monster);
         case SPELL_SCORCH:
             return mi_calc_scorch_damage(monster);
         case SPELL_SMITING:
@@ -1009,13 +1002,9 @@ int main(int argc, char* argv[])
                 if (attk.type == AT_CLAW && mon.has_claws() >= 3)
                     monsterattacks += colour(LIGHTGREEN, "(claw)");
 
-                const attack_flavour flavour(orig_attk.flavour == AF_DRAIN_STAT ?
-                                                 orig_attk.flavour :
-                                                 attk.flavour);
-
-                if (flavour_has_reach(flavour))
+                if (flavour_has_reach(attk.flavour))
                     monsterattacks += "(reach)";
-                switch (flavour)
+                switch (attk.flavour)
                 {
                 case AF_SWOOP:
                     monsterattacks += "(swoop)";
@@ -1025,11 +1014,25 @@ int main(int argc, char* argv[])
                     monsterattacks +=
                         colour(YELLOW, damage_flavour("acid", "4d3"));
                     break;
+                case AF_AIRSTRIKE:
+                {
+                    short int min = pow(hd, 1.2) / 2;
+                    short int max = pow(hd + 1, 1.2) * 12 / 6;
+                    monsterattacks +=
+                        colour(LIGHTBLUE, damage_flavour("airstrike", min, max));
+                    break;
+                }
+                case AF_ALEMBIC:
+                    monsterattacks += colour(LIGHTGREEN, "(alembic)");
+                    break;
                 case AF_BLINK:
                     monsterattacks += colour(MAGENTA, "(blink self)");
                     break;
                 case AF_BLINK_WITH:
                     monsterattacks += colour(MAGENTA, "(blink together)");
+                    break;
+                case AF_BOMBLET:
+                    monsterattacks += colour(LIGHTRED, "(bomblet)");
                     break;
                 case AF_COLD:
                     monsterattacks += colour(
@@ -1037,12 +1040,6 @@ int main(int argc, char* argv[])
                     break;
                 case AF_CONFUSE:
                     monsterattacks += colour(LIGHTMAGENTA, "(confuse)");
-                    break;
-                case AF_DRAIN_DEX:
-                    monsterattacks += colour(RED, "(drain dexterity)");
-                    break;
-                case AF_DRAIN_STR:
-                    monsterattacks += colour(RED, "(drain strength)");
                     break;
                 case AF_DRAIN:
                     monsterattacks += colour(LIGHTMAGENTA, "(drain)");
@@ -1106,12 +1103,6 @@ int main(int argc, char* argv[])
                     break;
                 case AF_ANTIMAGIC:
                     monsterattacks += colour(LIGHTBLUE, "(antimagic)");
-                    break;
-                case AF_DRAIN_INT:
-                    monsterattacks += colour(BLUE, "(drain int)");
-                    break;
-                case AF_DRAIN_STAT:
-                    monsterattacks += colour(BLUE, "(drain stat)");
                     break;
                 case AF_STEAL:
                     monsterattacks += colour(CYAN, "(steal)");

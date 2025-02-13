@@ -148,6 +148,7 @@ class targeter_transference : public targeter_smite
 public:
     targeter_transference(const actor *act, int aoe);
     bool valid_aim(coord_def a) override;
+    bool affects_monster(const monster_info& mon) override;
 };
 
 class targeter_inner_flame : public targeter_smite
@@ -690,12 +691,12 @@ private:
 class targeter_wall_arc : public targeter_smite
 {
 public:
-    targeter_wall_arc(const actor* caster, int size);
+    targeter_wall_arc(const actor* caster, int num_walls);
     bool set_aim(coord_def a) override;
     aff_type is_affected(coord_def loc) override;
 private:
-    int wall_num;
     vector<coord_def> spots;
+    int num_walls;
 };
 
 class targeter_tempering : public targeter_smite

@@ -246,8 +246,6 @@ void wizard_heal(bool super_heal)
         you.duration[DUR_WORD_OF_CHAOS_COOLDOWN] = 0;
         you.duration[DUR_FIRE_VULN] = 0;
         delete_all_temp_mutations("Super heal");
-        you.stat_loss.init(0);
-        you.attribute[ATTR_STAT_LOSS_XP] = 0;
         decr_zot_clock();
         you.redraw_stats = true;
         gain_draconian_breath_uses(MAX_DRACONIAN_BREATH);
@@ -266,9 +264,6 @@ void wizard_heal(bool super_heal)
     you.redraw_hit_points = true;
     you.redraw_armour_class = true;
     you.redraw_evasion = true;
-
-    for (int stat = 0; stat < NUM_STATS; stat++)
-        you.duration[stat_zero_duration(static_cast<stat_type> (stat))] = 0;
 }
 
 void wizard_set_piety_to(int newpiety, bool force)
@@ -609,8 +604,6 @@ void wizard_set_stats()
     you.base_stats[STAT_STR] = debug_cap_stat(sstr);
     you.base_stats[STAT_INT] = debug_cap_stat(sint);
     you.base_stats[STAT_DEX] = debug_cap_stat(sdex);
-    you.stat_loss.init(0);
-    you.attribute[ATTR_STAT_LOSS_XP] = 0;
     notify_stat_change();
 }
 

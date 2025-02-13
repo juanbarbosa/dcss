@@ -17,6 +17,12 @@ You are about to teleport. While waiting to teleport, attempting to apply the
 status again (such as by using a scroll of teleportation) will cancel the
 teleportation.
 %%%%
+!Tele! status
+
+You are about to teleport towards hostile monsters, if possible. Before this
+happens, attempting to teleport again (such as by using a scroll of
+teleportation) will cancel this teleportation.
+%%%%
 Fly status
 
 You are flying above the ground, and are able to cross water and lava or fight
@@ -246,23 +252,10 @@ magic, briefly preventing you from casting any further spells.
 
 You are unable to cast spells.
 %%%%
-Brainless status
+Crippled status
 
-Your intelligence has fallen to 0. You are slowed, cannot cast or memorise
-spells, and cannot read scrolls. The status will persist for a short while even
-after recovering your intelligence.
-%%%%
-Clumsy status
-
-Your dexterity has fallen to 0. You are slowed, cannot sneak or use shields,
-and are almost entirely unable to dodge. The status will persist for a short
-while even after recovering your dexterity.
-%%%%
-Collapse status
-
-Your strength has fallen to 0. You are slowed, and you do not regenerate health
-while monsters are visible. The status will persist for a short while even after
-recovering your strength.
+At least one of your strength, intelligence, or dexterity has fallen to 0 or
+below. You will act slowly until this situation is remedied.
 %%%%
 DChan status
 
@@ -1104,3 +1097,19 @@ Unstable status
 
 You have become untethered in space, blinking randomly each turn and suffering a
 small amount of damage each time you do so.
+%%%%
+Vainglory status
+
+You have recently announced your regal presence and it simply would not do to
+leave the floor again so soon afterward.
+%%%%
+Protected status
+
+Your platinum paragon is close enough to you to sometimes parry attacks directed
+at you.
+%%%%
+Vexed status
+
+Your mind is clouded by frustration. For the next several turns, you will
+uncontrollably attack random adjacent creatures (whether friendly or enemy) or
+even empty space.

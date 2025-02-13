@@ -353,7 +353,7 @@ MONS:     fire giant ; battleaxe ego:freezing / \
           frost giant ; great sword ego:flaming / \
           deep troll earth mage / salamander tyrant / tengu reaver / \
           ettin ; great mace ego:flaming . great mace ego:freezing / \
-          spriggan air mage / lich / sphinx w:5 / \
+          spriggan air mage / lich / guardian sphinx w:5 / \
           deep elf annihilator ; ice dragon scales | fire dragon scales . \
                                  scimitar ego:flaming | scimitar ego:freezing
 MONS:     iron dragon w:5 / iron dragon perm_ench:shapeshifter w:5 / \
@@ -371,7 +371,7 @@ KMONS:    7 = Vv w:2 / ancient lich / alderking w:6, \
 KMONS:    8 = Frederick / titan / draconian annihilator w:5, \
               titan / draconian annihilator w:5
 KMONS:    A = golden dragon w:19 / golden dragon perm_ench:shapeshifter w:1 / \
-              quicksilver dragon w:14 / \
+              wyrmhole w:5 / quicksilver dragon w:14 / \
               quicksilver dragon perm_ench:shapeshifter w:1
 KMONS:    B = glowing shapeshifter hd:16 / glowing shapeshifter hd:15
 KMONS:    C = Josephina band w:5 / walking frostbound tome, \

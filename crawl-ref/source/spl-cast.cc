@@ -563,7 +563,7 @@ static int _spell_enhancement(spell_type spell)
     if (typeflags & spschool::air)
         enhanced += player_spec_air();
 
-    if (player_equip_unrand(UNRAND_BATTLE))
+    if (you.unrand_equipped(UNRAND_BATTLE))
     {
         if (vehumet_supports_spell(spell))
             enhanced++;
@@ -573,7 +573,7 @@ static int _spell_enhancement(spell_type spell)
 
     enhanced += you.archmagi();
     enhanced += you.duration[DUR_BRILLIANCE] > 0
-                || player_equip_unrand(UNRAND_FOLLY);
+                || you.unrand_equipped(UNRAND_FOLLY);
 
     // These are used in an exponential way, so we'll limit them a bit. -- bwr
     if (enhanced > 3)
@@ -644,13 +644,6 @@ bool can_cast_spells(bool quiet)
     {
         if (!quiet)
             mpr("You cannot cast spells while unable to breathe!");
-        return false;
-    }
-
-    if (you.duration[DUR_BRAINLESS])
-    {
-        if (!quiet)
-            mpr("You lack the mental capacity to cast spells.");
         return false;
     }
 
@@ -738,7 +731,7 @@ static void _majin_speak(spell_type spell)
 
 static bool _majin_charge_hp()
 {
-    return player_equip_unrand(UNRAND_MAJIN) && !you.duration[DUR_DEATHS_DOOR];
+    return you.unrand_equipped(UNRAND_MAJIN) && !you.duration[DUR_DEATHS_DOOR];
 }
 
 
@@ -961,7 +954,7 @@ spret cast_a_spell(bool check_range, spell_type spell, dist *_target,
     _handle_channelling(cost, cast_result);
     if (cast_result == spret::success)
     {
-        if (player_equip_unrand(UNRAND_MAJIN) && one_chance_in(500))
+        if (you.unrand_equipped(UNRAND_MAJIN) && one_chance_in(500))
             _majin_speak(spell);
         did_god_conduct(DID_SPELL_CASTING, 1 + random2(5));
         count_action(CACT_CAST, spell);
@@ -1455,7 +1448,7 @@ unique_ptr<targeter> find_spell_targeter(spell_type spell, int pow, int range)
                                                    diamond_sawblade_spots(false));
 
     case SPELL_SPLINTERFROST_SHELL:
-        return make_unique<targeter_wall_arc>(&you, 5);
+        return make_unique<targeter_wall_arc>(&you, 4);
 
     case SPELL_PERCUSSIVE_TEMPERING:
         return make_unique<targeter_tempering>();
@@ -1829,7 +1822,7 @@ vector<string> desc_wl_success_chance(const monster_info& mi, int pow,
     int wl = mi.willpower();
     if (wl == WILL_INVULN)
         return vector<string>{"infinite will"};
-    if (you.wearing_ego(EQ_ALL_ARMOUR, SPARM_GUILE))
+    if (you.wearing_ego(OBJ_ARMOUR, SPARM_GUILE))
         wl = guile_adjust_willpower(wl);
     if (hitfunc && !hitfunc->affects_monster(mi))
         return vector<string>{"not susceptible"};
@@ -2271,7 +2264,7 @@ spret your_spells(spell_type spell, int powc, bool actual_spell,
             dithmenos_shadow_spell(spell);
         _spellcasting_side_effects(spell, god, !actual_spell);
 
-        if (you.wearing_ego(EQ_GIZMO, SPGIZMO_SPELLMOTOR) && actual_spell)
+        if (you.wearing_ego(OBJ_GIZMOS, SPGIZMO_SPELLMOTOR) && actual_spell)
             coglin_spellmotor_attack();
 
         return spret::success;
@@ -2734,10 +2727,7 @@ static spret _do_cast(spell_type spell, int powc, const dist& spd,
     // Finally, try zaps.
     zap_type zap = spell_to_zap(spell);
     if (zap != NUM_ZAPS)
-    {
-        return zapping(zap, spell_zap_power(spell, powc),
-                       beam, true, nullptr, fail);
-    }
+        return zapping(zap, powc,  beam, true, nullptr, fail);
 
     return spret::none;
 }
@@ -2974,8 +2964,6 @@ static dice_def _spell_damage(spell_type spell, int power)
         return dice_def(0,0);
     switch (spell)
     {
-        case SPELL_FREEZE:
-            return freeze_damage(power, false);
         case SPELL_FULMINANT_PRISM:
             return prism_damage(prism_hd(power, false), true);
         case SPELL_CONJURE_BALL_LIGHTNING:

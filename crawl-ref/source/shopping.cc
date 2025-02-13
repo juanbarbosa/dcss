@@ -20,6 +20,7 @@
 #include "english.h"
 #include "env.h"
 #include "files.h"
+#include "god-wrath.h"
 #include "invent.h"
 #include "item-name.h"
 #include "item-prop.h"
@@ -186,6 +187,13 @@ int artefact_value(const item_def &item)
         ret += 8;
 
     return (ret > 0) ? ret : 0;
+}
+
+bool have_voucher()
+{
+    if (you.attribute[ATTR_VOUCHER] > 0)
+            return true;
+    return false;
 }
 
 unsigned int item_value(item_def item, bool ident)
@@ -465,7 +473,7 @@ unsigned int item_value(item_def item, bool ident)
                 valued += 30;
                 break;
 
-            case POT_DEGENERATION:
+            case POT_MOONSHINE:
                 valued += 10;
                 break;
 
@@ -632,6 +640,7 @@ unsigned int item_value(item_def item, bool ident)
         {
         case MISC_HORN_OF_GERYON:
         case MISC_ZIGGURAT:
+        case MISC_SHOP_VOUCHER:
             valued += 5000;
             break;
 
@@ -750,8 +759,7 @@ bool is_worthless_consumable(const item_def &item)
     case OBJ_POTIONS:
         switch (item.sub_type)
         {
-        // Blood potions are worthless because they are easy to make.
-        case POT_DEGENERATION:
+        case POT_MOONSHINE:
             return true;
         default:
             return false;
@@ -783,7 +791,7 @@ static int _count_identical(const vector<item_def>& stock, const item_def& item)
  *  @param index the index of the item to buy in shop.stock
  *  @returns true if it went in your inventory, false otherwise.
  */
-static bool _purchase(shop_struct& shop, const level_pos& pos, int index)
+static bool _purchase(shop_struct& shop, const level_pos& pos, int index, bool voucher)
 {
     item_def item = shop.stock[index]; // intentional copy
     const int cost = item_price(item, shop);
@@ -814,19 +822,24 @@ static bool _purchase(shop_struct& shop, const level_pos& pos, int index)
     // gems, the Orb).
     milestone_check(item);
 
-    you.del_gold(cost);
+    if (!voucher)
+        you.del_gold(cost);
+    else
+        you.attribute[ATTR_VOUCHER]--;
 
     you.attribute[ATTR_PURCHASES] += cost;
 
     origin_purchased(item);
 
-    if (shoptype_identifies_stock(shop.type)
-        || item_type_is_equipment(item.base_type)
-        || item.base_type == OBJ_TALISMANS)
+    // Unidentified potions/scrolls are the only shop items that don't become
+    // auto-ID'd when the player purchases them. (But identified potions/scrolls
+    // should still be re-identified, so the player can potentially learn their
+    // type.)
+    if ((item.base_type != OBJ_POTIONS && item.base_type != OBJ_SCROLLS)
+         || item.is_identified())
+
     {
-        // Identify the item. This also takes the ID note if necessary.
-        // (We force identification, even for pre-ID'd items, so the player can
-        // learn its type.)
+        // (Re-)identify the item. This also takes the ID note if necessary.
         item.flags &= ~ISFLAG_IDENTIFIED;
         identify_item(item);
     }
@@ -876,6 +889,7 @@ class ShopMenu : public InvMenu
     vector<int> bought_indices;
 
     int selected_cost(bool use_shopping_list=false) const;
+    int max_cost() const;
 
     void init_entries();
     void update_help();
@@ -1006,6 +1020,15 @@ int ShopMenu::selected_cost(bool use_shopping_list) const
     return cost;
 }
 
+int ShopMenu::max_cost() const
+{
+    int cost = 0;
+    for (auto item : selected_entries())
+        cost = max(cost, item_price(*dynamic_cast<ShopEntry*>(item)->item, shop));
+
+    return cost;
+}
+
 void ShopMenu::update_help()
 {
     // TODO: convert to a regular keyhelp, make less painful
@@ -1019,14 +1042,14 @@ void ShopMenu::update_help()
     const int total_cost = !can_purchase ? 0 : selected_cost(true);
     if (total_cost > you.gold)
     {
-        if (crawl_state.game_is_descent())
+        int max = max_cost();
+        if (have_voucher() && total_cost - max <= you.gold)
         {
             top_line += "<lightred>";
             top_line +=
-                make_stringf(" Purchasing will put you in debt for %d gold"
-                             " piece%s.",
-                             total_cost - you.gold,
-                             (total_cost - you.gold != 1) ? "s" : "");
+                make_stringf(" Purchasing will use your shop voucher and %d gold piece%s.",
+                             total_cost - max,
+                             (total_cost - max != 1) ? "s" : "");
             top_line += "</lightred>";
         }
         else
@@ -1151,20 +1174,10 @@ void ShopMenu::purchase_selected()
     const bool too_expensive = (cost > you.gold);
     if (too_expensive)
     {
-        if (!crawl_state.game_is_descent())
+        if (!have_voucher() || cost - max_cost() > you.gold)
         {
             more = formatted_string::parse_string(make_stringf(
                     "<%s>You don't have enough money.</%s>\n",
-                    col.c_str(),
-                    col.c_str()));
-            more += old_more;
-            update_more();
-            return;
-        }
-        else if (you.props.exists(DESCENT_DEBT_KEY))
-        {
-            more = formatted_string::parse_string(make_stringf(
-                    "<%s>You're in debt! Pay it off first.</%s>\n",
                     col.c_str(),
                     col.c_str()));
             more += old_more;
@@ -1177,7 +1190,7 @@ void ShopMenu::purchase_selected()
                col.c_str(),
                buying_from_list ? " in shopping list" : "",
                cost,
-               too_expensive ? "This will put you in debt!" : "",
+               too_expensive ? "This will use your shop voucher." : "",
                Options.easy_confirm == easy_confirm_type::none ? "Y" : "y",
                col.c_str()));
     more += old_more;
@@ -1201,6 +1214,9 @@ void ShopMenu::purchase_selected()
     map<int,int> tmp_l_p = you.last_pickup;
     you.last_pickup.clear();
 
+    bool use_voucher = false;
+    int voucher_value = too_expensive ? max_cost() : 0;
+
     // Will iterate backwards through the shop (because of the earlier sort).
     // This means we can erase() from shop.stock (since it only invalidates
     // pointers to later elements), but nothing else.
@@ -1208,12 +1224,18 @@ void ShopMenu::purchase_selected()
     {
         const int i = static_cast<item_def*>(entry->data) - shop.stock.data();
         item_def& item(shop.stock[i]);
+        const int price = item_price(item, shop);
         // Can happen if the price changes due to id status
-        if (item_price(item, shop) > you.gold && !crawl_state.game_is_descent())
+        if (price > you.gold && price != voucher_value)
             continue;
+
+        use_voucher = price == voucher_value;
+        if (use_voucher)
+            voucher_value = 0;
+
         const int quant = item.quantity;
 
-        if (!_purchase(shop, pos, i))
+        if (!_purchase(shop, pos, i, use_voucher))
         {
             // The purchased item didn't fit into your
             // knapsack.
@@ -1823,8 +1845,8 @@ bool ShoppingList::cull_identical_items(const item_def& item, int cost)
         // Only these are really interchangeable.
         break;
     case OBJ_MISCELLANY:
-        // ... and a few of these.
-        if (!is_xp_evoker(item))
+        // Evokers are useless to purchase at max charge, but useful otherwise.
+        if (!is_xp_evoker(item) || evoker_plus(item.sub_type) != MAX_EVOKER_ENCHANT)
             return 0;
         break;
     default:
@@ -2062,12 +2084,22 @@ void ShoppingList::remove_dead_shops()
     // Only restore the excursion at the very end.
     level_excursion le;
 
+    // This is potentially a lot of excursions, it might be cleaner to do this
+    // by annotating the shopping list directly
     set<level_pos> shops_to_remove;
+    set<level_id> levels_seen;
 
     for (CrawlHashTable &thing : *list)
     {
         const level_pos place = thing_pos(thing);
-        le.go_to(place.id); // thereby running DACT_REMOVE_GOZAG_SHOPS
+        le.go_to(place.id);
+        if (!levels_seen.count(place.id))
+        {
+            // Alternatively, this could call catchup_dactions. But that might
+            // have other side effects.
+            gozag_abandon_shops_on_level();
+            levels_seen.insert(place.id);
+        }
         const shop_struct *shop = shop_at(place.pos);
 
         if (!shop)

@@ -139,7 +139,7 @@ function species_mock(e)
   elseif you.race() == "Human" then
     return "killer klown"
   elseif you.race() == "Felid" then
-    return "sphinx zombie"
+    return "sphinx marauder zombie"
   elseif you.race() == "Formicid" then
     return "giant cockroach"
   elseif you.race() == "Gargoyle" then
@@ -833,13 +833,14 @@ ENDMAP
 NAME:    tgw_fedhas
 TAGS:    no_item_gen no_monster_gen
 TAGS:    temple_overflow_1 temple_overflow_fedhas uniq_altar_fedhas
-DEPTH:   D, Lair
+DEPTH:   D:3-, Lair
 KFEAT:   _ = altar_fedhas
 KPROP:   xzd3P = no_tele_into
 MONS:    plant, fungus, oklob plant, bush, toadstool
 KMONS:   S = sacred lotus
 KFEAT:   d = floor
 KFEAT:   S = w
+KFEAT:   C = c
 SUBST:   x = TTPPPPP.
 # Only make "oklob behind bushes" situation possible a bit deeper.
 : if you.absdepth() > 5 then
@@ -852,9 +853,11 @@ SUBST:   T = xt, U = xx
 SUBST:   " = .....5
 COLOUR:  . = green / none
 COLOUR:  ' = green
+TILE:    c = dngn_stone_wall_green
+TILE:    C = wall_stone_puffball
 : interest_check(_G)
 MAP
-ccccccccccccccccccccccc
+cccccccccCcCcCccccccccc
 cxxxxxxxxxxxxxxxxxxxxxc
 cxxxxxxxxxxxxxxPxxd3xxc
 cxxxxxxxxxxxxxxPddddxxc
@@ -863,24 +866,24 @@ cxxxxxxx.......xxPPxxxc
 cxxxxxx..ww.ww..xxPPxxc
 cxxxxx..www.www..xxxPxc
 cxxxx..wwww.wwww..xxxxc
-cxxxx.wwwww.wwwww.xxxxc
+Cxxxx.wwwww.wwwww.xxxxC
 cxxxx.wwww'''wwww.xxxxc
-cxxxx.wSww'_'wwSw.xxxxc
+Cxxxx.wSww'_'wwSw.xxxxC
 cxxxx.wwww'''wwww.xxxxc
-cxxxx.wwwwwwwwwww.xxxxc
+Cxxxx.wwwwwwwwwww.xxxxC
 cxxxx..wwwwwwwww..xxxxc
 cxxxxx..wwwwwww..xxxxxc
 cxxxxxx..wwwww..xxxxxxc
 cxxxxxxx.......xxxxxxxc
+cxxxxxxxxxC.Cxxxxxxxxxc
 cxxxxxxxxxc.cxxxxxxxxxc
-cxxxxxxxxxc.cxxxxxxxxxc
-ccccccccccc@ccccccccccc
+ccccccccCcC@CcCcccccccc
 ENDMAP
 
 NAME:   fedhas_ov_isle_minmay
 TAGS:   temple_overflow_1 temple_overflow_fedhas uniq_altar_fedhas
 TAGS:   no_monster_gen transparent no_descent
-DEPTH:  D, !D:$
+DEPTH:  D:3-, !D:$
 MONS:   plant / bush w:5
 KMONS:  S = sacred lotus
 KFEAT:  S = w
@@ -1518,7 +1521,7 @@ NAME:   kennysheep_vampire_church
 TAGS:   no_monster_gen temple_overflow_1 temple_overflow_kikubaaqudgha
 TAGS:   uniq_altar_kikubaaqudgha transparent
 : if you.in_branch("Depths") then
-MONS:   vampire knight / nothing, vampire mage
+MONS:   vampire knight / jiangshi, vampire mage
 :else
 MONS:   vampire bat / nothing w:7, bat skeleton / bat zombie
 :end
@@ -1610,7 +1613,7 @@ ENDMAP
 ### Makhleb overflow altars ###################################################
 
 NAME:    demons_altar
-DEPTH:   D, Orc, !Orc:$
+DEPTH:   D:4-, Orc, !Orc:$
 TAGS:    no_monster_gen patrolling temple_overflow_1 temple_overflow_makhleb
 TAGS:    transparent layout_rooms layout_city layout_open uniq_altar_makhleb
 KFEAT:   _ = altar_makhleb
@@ -1637,7 +1640,7 @@ ENDMAP
 NAME:  bloody_makhleb
 TAGS:  uniq_altar_makhleb temple_overflow_1 temple_overflow_makhleb
 TAGS:  transparent decor
-DEPTH: D, Orc
+DEPTH: D:3-, Orc
 KPROP: . = bloody / nothing
 KFEAT: _ = altar_makhleb
 KITEM: _ = robe, whip
@@ -1845,7 +1848,7 @@ MARKER: S = lua:fog_machine { cloud_type="foul pestilence", walk_dist=1, \
 MAP
 cccccccc+++cccccccc
 cnnnnnnn...nnnnnnnc
-cnde'ean...nfg'gfnc
+cnde'edn...nfg'gfnc
 cne'''en.G.ng'''gnc
 cn''S''n...n''R''nc
 cne'''en...ng'''gnc
@@ -1920,7 +1923,7 @@ ENDMAP
 
 NAME:   nemelex_lonely_heart_becter
 TAGS:   uniq_altar_nemelex_xobeh transparent decor
-TAGS:   temple_overflow_1 temple_overflow_nemelex
+TAGS:   temple_overflow_1 temple_overflow_nemelex no_wall_fixup
 TAGS:   no_rotate no_vmirror no_monster_gen no_item_gen vaults_room_empty
 DEPTH:  D:3-, Vaults, Depths
 # Boris misses Natasha, Bai Suzhen misses Xu Xian,
@@ -2003,14 +2006,18 @@ TAGS:   transparent decor vaults_empty
 DEPTH:  D:3-, Vaults, Orc
 WEIGHT: 3
 KFEAT:  _ = altar_okawaru
+KFEAT:  ^ = tyrant's trap
+: if not you.in_branch("Vaults") then
+SUBST:  ^ = .
+: end
 : interest_check(_G)
 MAP
 .......
-...v...
+.^.v...
 ..v.v..
 .v._.v.
 ..v.v..
-...v...
+...v.^.
 .......
 ENDMAP
 
@@ -2263,16 +2270,15 @@ ENDMAP
 
 NAME:   grunt_qazlal_sundering
 TAGS:   no_monster_gen no_item_gen no_trap_gen temple_overflow_1
-TAGS:   temple_overflow_qazlal uniq_altar_qazlal transparent
+TAGS:   temple_overflow_qazlal uniq_altar_qazlal
 KFEAT:  _ = altar_qazlal
-KPROP:  c = no_tele_into
+KPROP:  -c = no_tele_into
 SUBST:  c = cccl^.
 SUBST:  - = ..l^
 :  if you.depth() ~= dgn.br_depth(you.branch()) then
 KFEAT:  ^ = shaft trap
 :  end
 KITEM:  . = nothing w:189 / stone / large rock q:1 w:1
-KFEAT:  . = .
 : interest_check(_G)
 MAP
  ----@----
@@ -2314,7 +2320,7 @@ ENDMAP
 NAME:    nicolae_qazlal_style_of_elements
 TAGS:    temple_overflow_qazlal temple_overflow_1 uniq_altar_qazlal
 TAGS:    no_trap_gen no_item_gen no_monster_gen transparent decor
-SHUFFLE: faew
+SHUFFLE: Cf / Da / Ee / Fw
 KPROP:   faew = no_tele_into
 KMASK:   faew = opaque
 KMONS:   f = fire elemental
@@ -2324,6 +2330,7 @@ KMONS:   w = water elemental
 KFEAT:   _ = altar_qazlal
 KFEAT:   f = lava
 KFEAT:   w = deep_water
+KFEAT:   CDEF = c
 MARKER:  a = lua:fog_machine { cloud_type = "thin mist", \
                                pow_min = 100, pow_max = 100, delay = 1, \
                                size = 1, walk_dist = 0, start_clouds = 1 }
@@ -2331,16 +2338,18 @@ MARKER:  e = lua:fog_machine { cloud_type = "sparse dust", \
                                pow_min = 100, pow_max = 100, delay = 1, \
                                size = 1, walk_dist = 0, start_clouds = 1 }
 : interest_check(_G)
+TILE:   C = wall_stone_scorched
+TILE:   DEF = wall_stone_gray
 MAP
-ccc.@.ccc
-cfn...nac
-cnn...nnc
+CCC.@.DDD
+Cfn...naD
+Cnn...nnD
 .........
 ...._....
 .........
-cnn...nnc
-cwn...nec
-ccc...ccc
+Fnn...nnE
+Fwn...neE
+FFF...EEE
 ENDMAP
 
 # general_overflow_altar cannot contain the power of Qazlal
@@ -2615,7 +2624,7 @@ MAP
 ENDMAP
 
 NAME:   led_sif_book
-DEPTH:  D, Orc
+DEPTH:  D:3-, Orc
 TAGS:   no_item_gen no_pool_fixup no_monster_gen
 TAGS:   temple_overflow_1 temple_overflow_sif_muna uniq_altar_sif_muna
 KPROP:  1d = no_tele_into
@@ -2744,7 +2753,7 @@ ENDMAP
 NAME:   hellmonk_sif_muna_bookshelves
 TAGS:   temple_overflow_sif_muna temple_overflow_1 uniq_altar_sif_muna
 TAGS:   transparent decor vaults_empty vaults_orient_s
-DEPTH:  D, Elf, Vaults, Depths
+DEPTH:  D:3-, Elf, Vaults, Depths
 WEIGHT: 3 (Vaults), 10
 KFEAT:  _ = altar_sif_muna
 TILE:   c = wall_studio
@@ -2877,7 +2886,7 @@ ENDMAP
 NAME:   trog_butcher_becter
 TAGS:   temple_overflow_1 temple_overflow_trog uniq_altar_trog
 TAGS:   no_monster_gen no_item_gen transparent
-DEPTH:  D, Orc, !Orc:$
+DEPTH:  D:3-, Orc, !Orc:$
 : if you.absdepth() < 6 then
 MONS:   orc ; hand axe . animal skin
 MONS:   rat / frilled lizard / quokka w:20
@@ -2885,7 +2894,8 @@ MONS:   rat / frilled lizard / quokka w:20
 MONS:   orc warrior ; war axe . animal skin
 MONS:   iguana / scorpion
 : end
-NSUBST: ' = 3=2 / .
+KFEAT:  d = cache of meat
+NSUBST: ' = 3:2 / *:.
 SUBST:  y = x, " = .
 KPROP:  1y" = bloody
 KFEAT:  _ = altar_trog
@@ -2895,8 +2905,8 @@ KFEAT:  ^ = shaft trap
 KFEAT:  m = iron_grate
 MAP
   xxxxxxx
- xx'''''xx
-xx.xxxxxxxx
+ xx''''dxx
+xx'xxxxxxxx
 xx+xmmmx^yx
 xx.."1"""yx
 xx..._"..xx
@@ -3225,6 +3235,7 @@ TAGS:    decor uniq_altar_vehumet
 SHUFFLE: DEFHJKLM / FHDELMJK, DE, JK
 SUBST:   DJ = N, EKFHLM = ., N : cb
 KFEAT:   _ = altar_vehumet
+TILE:    c = wall_stone_scorched
 : interest_check(_G)
 MAP
      xxxxx
@@ -3428,9 +3439,9 @@ MONS:   rakshasa ; dire flail ego:chaos | scimitar ego:chaos | partisan ego:chao
 ITEM:   gold q:1 no_pickup
 KFEAT:  _ = altar_xom
 :  if you.depth() == dgn.br_depth(you.branch()) then
-KFEAT:  ~ = teleport trap w:20 / alarm trap w:3 / dispersal trap
+KFEAT:  ~ = teleport trap w:20 / harlequin's trap w:3 / dispersal trap
 :  else
-KFEAT:  ~ = shaft trap / teleport trap / alarm trap w:3 / dispersal trap
+KFEAT:  ~ = shaft trap / teleport trap / harlequin's trap w:3 / dispersal trap
 :  end
 NSUBST: " = 1:_ / 1:*% / 8:M / *:?, G = 1:G / 1:bvGGTU~ / 2 = vGl~???? / * = '?
 NSUBST: ' = 10 = W:60 w:50 x:20 n:80 v / 8:d / * = xxxxnv
@@ -4187,7 +4198,7 @@ KMONS: z = orc zombie / kobold zombie / goblin zombie / hobgoblin zombie
 : if you.absdepth() <= 4 then
 KMONS: _ = crimson imp / white imp w:5
 : else
-KMONS: _ = crimson imp / white imp / shadow imp / quasit
+KMONS: _ = crimson imp / white imp / shadow imp
 : end
 KFEAT: _ = altar_the_shining_one
 MAP

@@ -4,9 +4,16 @@
 **/
 
 #pragma once
+#include <cstdint>
+#include <string>
 
 #include "artefact-prop-type.h"
+#include "defines.h"
 #include "unique-item-status-type.h"
+#include "object-class-type.h"
+#include "killer-type.h"
+#include "fixedvector.h"
+
 
 #define ART_PROPERTIES ARTP_NUM_PROPERTIES
 
@@ -21,6 +28,10 @@
 #define VICTORY_CONDUCT_KEY "victory_conduct"
 
 struct bolt;
+struct item_def;
+class actor;
+class CrawlVector;
+class monster;
 
 enum unrand_flag_type
 {
@@ -145,3 +156,5 @@ void unrand_reacts();
 void unrand_death_effects(monster* mons, killer_type killer);
 
 bool item_type_can_be_artefact(object_class_type typ);
+
+bool are_fixed_props_ok(item_def& item);

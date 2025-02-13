@@ -849,7 +849,6 @@ static const vector<random_pick_entry<monster_type>> _xom_summons =
   { -4, -1,   5, FLAT, MONS_QUOKKA },
   { -3,  6,  60, SEMI, MONS_CRIMSON_IMP },
   { -1,  6,  40, SEMI, MONS_IRON_IMP },
-  {  2,  8,  60, SEMI, MONS_QUASIT },
   {  2,  8,  40, SEMI, MONS_SHADOW_IMP },
   {  3,  8,  50, SEMI, MONS_UFETUBUS },
   {  3,  8,  40, SEMI, MONS_WHITE_IMP },
@@ -892,11 +891,12 @@ static const vector<random_pick_entry<monster_type>> _xom_summons =
   { 16, 22,  10, SEMI, MONS_BUNYIP },
   { 16, 23,  50, SEMI, MONS_RADROACH },
   { 16, 25,  75, SEMI, MONS_VERY_UGLY_THING },
+  { 16, 24,  25, SEMI, MONS_SPHINX_MARAUDER },
   { 17, 24,  35, SEMI, MONS_GLOWING_ORANGE_BRAIN },
-  { 17, 25,  50, SEMI, MONS_SPHINX },
   { 17, 33,  35, SEMI, MONS_SHADOW_DEMON },
   { 17, 33,  65, SEMI, MONS_SIN_BEAST },
   { 17, 33,  15, SEMI, MONS_CACODEMON },
+  { 18, 25,  50, SEMI, MONS_GUARDIAN_SPHINX },
   { 18, 33,  35, SEMI, MONS_REAPER },
   { 18, 24,  30, SEMI, MONS_DANCING_WEAPON },
   { 19, 26,   1, FLAT, MONS_ORANGE_STATUE },
@@ -2771,7 +2771,7 @@ static void _xom_hyper_enchant_monster(int sever)
                                      ENCH_EMPOWERED_SPELLS, ENCH_REPEL_MISSILES,
                                      ENCH_RESISTANCE, ENCH_REGENERATION,
                                      ENCH_STRONG_WILLED, ENCH_TOXIC_RADIANCE,
-                                     ENCH_DOUBLED_VIGOUR, ENCH_MIRROR_DAMAGE,
+                                     ENCH_DOUBLED_HEALTH, ENCH_MIRROR_DAMAGE,
                                      ENCH_SWIFT };
     vector<monster*> targetable = _xom_find_weak_monsters(true);
     int time = random_range(200, 200 + sever * 2);
@@ -3103,17 +3103,7 @@ static void _xom_fog(int /*sever*/)
 
 static item_def* _xom_get_random_worn_ring()
 {
-    item_def* item;
-    vector<item_def*> worn_rings;
-
-    for (int slots = EQ_FIRST_JEWELLERY; slots <= EQ_LAST_JEWELLERY; slots++)
-    {
-        if (slots == EQ_AMULET)
-            continue;
-
-        if (item = you.slot_item(static_cast<equipment_type>(slots)))
-            worn_rings.push_back(item);
-    }
+    vector<item_def*> worn_rings = you.equipment.get_slot_items(SLOT_RING);
 
     if (worn_rings.empty())
         return nullptr;
@@ -3170,6 +3160,8 @@ static void _xom_pseudo_miscast(int /*sever*/)
             str = _get_xom_speech("feature deep water");
         else if (in_view[iv] == DNGN_FOUNTAIN_BLOOD)
             str = _get_xom_speech("feature blood");
+        else if (in_view[iv] == DNGN_FOUNTAIN_EYES)
+            str = _get_xom_speech("feature eyes");
         else if (in_view[iv] == DNGN_DRY_FOUNTAIN)
             str = _get_xom_speech("feature dry");
         else if (feat_is_statuelike(in_view[iv]))
@@ -3260,7 +3252,7 @@ static void _xom_pseudo_miscast(int /*sever*/)
 
     if (get_form()->flesh_equivalent.empty()
         && starts_with(species::skin_name(you.species), "bandage")
-        && you_can_wear(EQ_BODY_ARMOUR, true) != false)
+        && you_can_wear(SLOT_BODY_ARMOUR, true) != false)
     {
         string str = _get_xom_speech(
                 (!you.airborne() && !you.swimming()) ? "floor bandages"
@@ -3340,10 +3332,9 @@ static void _xom_pseudo_miscast(int /*sever*/)
     ///////////////////////////
     // Equipment related stuff.
 
-    if (you_can_wear(EQ_WEAPON, true) != false
-        && !you.slot_item(EQ_WEAPON))
+    if (you_can_wear(SLOT_WEAPON, true) != false && !you.weapon())
     {
-        const bool one_handed = you.slot_item(EQ_OFFHAND)
+        const bool one_handed = you.equipment.get_first_slot_item(SLOT_OFFHAND)
                                 || you.get_mutation_level(MUT_MISSING_HAND);
         string str = _get_xom_speech(one_handed ? "unarmed one hand"
                                                 : "unarmed two hands");
@@ -3354,7 +3345,7 @@ static void _xom_pseudo_miscast(int /*sever*/)
         messages.push_back(str);
     }
 
-    if (item_def* item = you.slot_item(EQ_CLOAK))
+    if (item_def* item = you.equipment.get_first_slot_item(SLOT_CLOAK))
     {
         string name = "your " + item->name(DESC_BASENAME, false, false, false);
         string str = _get_xom_speech("cloak slot");
@@ -3365,7 +3356,7 @@ static void _xom_pseudo_miscast(int /*sever*/)
         messages.push_back(str);
     }
 
-    if (item_def* item = you.slot_item(EQ_HELMET))
+    if (item_def* item = you.equipment.get_first_slot_item(SLOT_HELMET))
     {
         string name = "your " + item->name(DESC_BASENAME, false, false, false);
         string str = _get_xom_speech("helmet slot");
@@ -3376,7 +3367,7 @@ static void _xom_pseudo_miscast(int /*sever*/)
         messages.push_back(str);
     }
 
-    if (item_def* item = you.slot_item(EQ_OFFHAND))
+    if (item_def* item = you.equipment.get_first_slot_item(SLOT_OFFHAND))
     {
         string name = "your " + item->name(DESC_BASENAME, false, false, false);
         string str = _get_xom_speech("offhand slot");
@@ -3387,7 +3378,7 @@ static void _xom_pseudo_miscast(int /*sever*/)
         messages.push_back(str);
     }
 
-    if (item_def* item = you.slot_item(EQ_GLOVES))
+    if (item_def* item = you.equipment.get_first_slot_item(SLOT_GLOVES))
     {
         string gloves_name = item->name(DESC_BASENAME, false, false, false);
         // XXX: If the gloves' name doesn't start with "pair of", make it do so,
@@ -3406,7 +3397,7 @@ static void _xom_pseudo_miscast(int /*sever*/)
         messages.push_back(str);
     }
 
-    if (item_def* item = you.slot_item(EQ_BOOTS))
+    if (item_def* item = you.equipment.get_first_slot_item(SLOT_LOWER_BODY))
     {
         string name = "your " + item->name(DESC_BASENAME, false, false, false);
         string str = _get_xom_speech("boots slot");
@@ -3417,7 +3408,7 @@ static void _xom_pseudo_miscast(int /*sever*/)
         messages.push_back(str);
     }
 
-    if (item_def* item = you.slot_item(EQ_GIZMO))
+    if (item_def* item = you.equipment.get_first_slot_item(SLOT_GIZMO))
     {
         string name = "your " + item->name(DESC_BASENAME, false, false, false);
         string str = _get_xom_speech("gizmo slot");
@@ -3440,26 +3431,8 @@ static void _xom_pseudo_miscast(int /*sever*/)
         string ring_holder_singular;
         string ring_holder_plural;
 
-        // The ring on the amulet slot is on a neck/mantle, not a hand.
-        if (item == you.slot_item(EQ_RING_AMULET))
-        {
-            // XXX: Logic duplicated from item_def::name().
-            if (you.species == SP_OCTOPODE && form_keeps_mutations())
-            {
-                ring_holder_singular = "mantle";
-                ring_holder_plural = "mantles";
-            }
-            else
-            {
-                ring_holder_singular = "neck";
-                ring_holder_plural = "necks";
-            }
-        }
-        else
-        {
-            ring_holder_singular = you.hand_name(false);
-            ring_holder_plural = you.hand_name(true);
-        }
+        ring_holder_singular = you.hand_name(false);
+        ring_holder_plural = you.hand_name(true);
 
         str = replace_all(str, "@hand@", ring_holder_singular);
         str = replace_all(str, "@hands@", ring_holder_plural);
@@ -3467,7 +3440,7 @@ static void _xom_pseudo_miscast(int /*sever*/)
         messages.push_back(str);
     }
 
-    if (item_def* item = you.slot_item(EQ_BODY_ARMOUR))
+    if (item_def* item = you.body_armour())
     {
         string name = "your " + item->name(DESC_BASENAME, false, false, false);
         string str;
@@ -3843,30 +3816,6 @@ static void _xom_cloud_trail(int /*sever*/)
 
     if (suppressed)
         simple_god_message(" purifies the foul vapours!");
-}
-
-static void _xom_statloss(int /*sever*/)
-{
-    const string speech = _get_xom_speech("draining or torment");
-
-    const stat_type stat = static_cast<stat_type>(random2(NUM_STATS));
-    int loss = 1;
-
-    // Don't set the player to statzero unless Xom is being nasty.
-    if (_xom_feels_nasty())
-        loss = 1 + random2(3);
-    else if (you.stat(stat) <= loss)
-        return;
-
-    god_speaks(GOD_XOM, speech.c_str());
-    lose_stat(stat, loss);
-
-    const char* sstr[3] = { "Str", "Int", "Dex" };
-    const string note = make_stringf("stat loss: -%d %s (%d/%d)",
-                                     loss, sstr[stat], you.stat(stat),
-                                     you.max_stat(stat));
-
-    take_note(Note(NOTE_XOM_EFFECT, you.piety, -1, note), true);
 }
 
 static void _xom_draining(int /*sever*/)
@@ -4380,7 +4329,7 @@ static void _xom_blink_monsters(int /*sever*/)
         if (blink_to_player)
             blink_other_close(*mi, you.pos());
         else
-            monster_blink(*mi, false);
+            monster_blink(*mi, true);
 
         blinks++;
     }
@@ -4973,10 +4922,6 @@ static const vector<xom_event_data> _list_xom_bad_actions = {
         {return tn <= 8 && you.can_safely_mutate();}
     },
     {
-        XOM_BAD_STATLOSS, 12, 320, [](int /*sv*/, int /*tn*/)
-        {return you.strength() > 0 && you.intel() > 0 && you.dex() > 0;}
-    },
-    {
         XOM_BAD_DRAINING, 6, 160, [](int /*sv*/, int /*tn*/)
         {return player_prot_life() < 3;}
     },
@@ -5537,7 +5482,7 @@ static const map<xom_event_type, xom_event> xom_events = {
     { XOM_GOOD_CLOUD_TRAIL, { "cloud trail", _xom_cloud_trail }},
     { XOM_GOOD_CLEAVING, { "cleaving", _xom_cleaving }},
 
-    { XOM_BAD_MISCAST_PSEUDO, { "pseudo-miscast", _xom_pseudo_miscast, 10}},
+    { XOM_BAD_MISCAST_PSEUDO, { "pseudo-miscast", _xom_pseudo_miscast, 20}},
     { XOM_BAD_NOISE, { "noise", _xom_noise, 10 }},
     { XOM_BAD_ENCHANT_MONSTER, { "bad enchant monster",
                                  _xom_bad_enchant_monster, 10}},
@@ -5562,7 +5507,6 @@ static const map<xom_event_type, xom_event> xom_events = {
     { XOM_BAD_GRANT_WORD_OF_RECALL, {"speaker of recall",
                                     _xom_grants_word_of_recall, 40}},
     { XOM_BAD_BRAIN_DRAIN, {"mp brain drain", _xom_brain_drain, 30}},
-    { XOM_BAD_STATLOSS, { "statloss", _xom_statloss, 23}},
     { XOM_BAD_DRAINING, { "draining", _xom_draining, 23}},
     { XOM_BAD_TORMENT, { "torment", _xom_torment, 23}},
     { XOM_BAD_CHAOS_CLOUD, { "chaos cloud", _xom_chaos_cloud, 20}},

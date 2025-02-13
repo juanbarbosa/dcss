@@ -930,13 +930,6 @@ static spell_type _choose_mem_spell(spell_list &spells)
 
 bool can_learn_spell(bool silent)
 {
-    if (you.duration[DUR_BRAINLESS])
-    {
-        if (!silent)
-            mpr("Your brain is not functional enough to learn spells.");
-        return false;
-    }
-
     if (you.confused())
     {
         if (!silent)
@@ -1119,7 +1112,8 @@ bool book_has_title(const item_def &book)
     if (book.sub_type == BOOK_BIOGRAPHIES_II
         || book.sub_type == BOOK_BIOGRAPHIES_VII
         || book.sub_type == BOOK_MAXWELL
-        || book.sub_type == BOOK_UNRESTRAINED)
+        || book.sub_type == BOOK_UNRESTRAINED
+        || book.sub_type == BOOK_SWAMP_SOJOURN)
     {
         return true;
     }

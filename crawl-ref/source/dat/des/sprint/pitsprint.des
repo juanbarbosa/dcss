@@ -19,7 +19,7 @@ function base_monster_setup(e)
                kobold brigand band / gnoll band / gnoll bouda band w:6 /\
                gnoll sergeant band w:6 / orc band / orc priest band /\
                orc wizard band / ogre / centaur / phantom / zombie / skeleton /\
-               crimson imp / quasit / iron imp / white imp / ufetubus band /\
+               crimson imp / iron imp / white imp / ufetubus band /\
                fire bat / crocodile / brain worm / weeping skull / mummy w:5")
   e.kmons("B = steam dragon / acid dragon / blink frog band / killer bee band /\
                hornet / sleepcap / wyvern / basilisk / manticore / elephant /\
@@ -59,7 +59,7 @@ function base_monster_setup(e)
                naga sharpshooter / anaconda / spriggan druid / spriggan rider /\
                shambling mangrove w:5 / alligator band / harpy band w:5 /\
                alligator snapping turtle / formless jellyfish / water nymph /\
-               satyr band w:5 / merfolk impaler band w:5 /\
+               satyr band w:5 / merfolk impaler band w:5 / sphinx marauder /\
                merfolk aquamancer w:5 / boulder beetle / pharaoh ant /\
                radroach w:5 / jorogumo w:5 / broodmother w:5 / sun moth w:5 /\
                entropy weaver / eye of devastation / place:Crypt:1 zombie /\
@@ -73,8 +73,8 @@ function base_monster_setup(e)
                ironbound thunderhulk / ironbound frostheart /\
                crystal guardian / fire giant w:25 / frost giant w:25 /\
                stone giant / deep troll shaman band w:7 / hell knight band /\
-               sphinx / war gargoyle / thermic dynamo / dancing weapon /\
-               deep elf annihilator / deep elf death mage /\
+               guardian sphinx / war gargoyle / thermic dynamo /\
+               dancing weapon / deep elf annihilator / deep elf death mage /\
                deep elf high priest / deep elf demonologist /\
                deep elf sorcerer / deep elf elementalist / shadow dragon /\
                deep elf blademaster w:5 / deep elf master archer w:5 /\
@@ -91,7 +91,7 @@ function base_monster_setup(e)
                balrug / green death / blizzard demon / reaper / \
                searing wretch / imperial myrmidon / halazid warlock")
   e.kmons("F = storm dragon w:12 / shadow dragon / golden dragon w:12 /\
-               iron dragon / quicksilver dragon w:15 / spark wasp /\
+               iron dragon / quicksilver dragon w:15 / wyrmhole / spark wasp /\
                tengu reaver / juggernaut / titan / lich /\
                tentacled monstrosity / undying armoury w:5 /\
                deep elf blademaster / deep elf master archer /\
@@ -114,8 +114,9 @@ function base_monster_setup(e)
                orb of fire w:12 / electric golem / protean progenitor band w:6 /\
                ancient lich w:6 / dread lich w:6 / royal mummy / curse toe w:2 /\
                antique champion w:5 ; shadow dragon scales . kite shield . double sword /\
-               iron giant / hell sentinel w:12 / brimstone fiend / ice fiend /\
-               tzitzimitl / demonspawn corrupter w:2 / purple draconian shifter w:6 /\
+               oni incarcerator w:6 / iron giant / hell sentinel w:12 /\
+               brimstone fiend / ice fiend / tzitzimitl /\
+               demonspawn corrupter w:2 / purple draconian shifter w:6 /\
                pandemonium lord w:20 / seraph w:2")
 
   -- FIXME: this should probably use a huge comma uniq fallbacks syntax instead,
@@ -176,7 +177,7 @@ function base_monster_setup(e)
                storm dragon / swamp drake / lindwurm / rime drake /\
                shadow dragon w:5")
   e.kmons("X = shadow dragon / iron dragon / quicksilver dragon /\
-               golden dragon")
+               golden dragon / wyrmhole")
   e.kmons("Y = base draconian")
   e.kmons("Z = nonbase draconian")
   e.subst("1 = A:30 H:2")
@@ -496,8 +497,8 @@ function coven_setup(e)
   e.kmons("0 = deep elf annihilator / deep elf death mage / deep elf sorcerer /\
                deep elf demonologist / deep elf high priest /\
                deep elf elementalist / nonbase draconian w:20 /\
-               sphinx / lich / ancient lich w:3 / dread lich w:3 /\
-               arcanist w:5 / occultist w:5 / rakshasa w:5 /\
+               sphinx marauder w:5 / guardian sphinx / lich / ancient lich w:3 /\
+               dread lich w:3 / arcanist w:5 / occultist w:5 / rakshasa w:5 /\
                tengu conjurer w:5 / ogre mage w:5 / naga mage / nagaraja /\
                merfolk aquamancer w:5 / jorogumo w:5 / vampire mage /\
                base draconian w:20 / demonspawn blood saint w:3")

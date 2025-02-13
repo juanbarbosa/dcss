@@ -137,6 +137,7 @@ enum monster_type                      // env.mons[].type
     MONS_DEATH_DRAKE,
 #if TAG_MAJOR_VERSION > 34
     MONS_WIND_DRAKE,
+    MONS_WYRMHOLE,
     MONS_DRAGON,                // genus
 #endif
     MONS_STEAM_DRAGON,
@@ -303,7 +304,9 @@ enum monster_type                      // env.mons[].type
     MONS_VERY_UGLY_THING,
     MONS_ICE_BEAST,
     MONS_SKY_BEAST,
-    MONS_SPHINX,
+#if TAG_MAJOR_VERSION == 34
+    MONS_GUARDIAN_SPHINX,
+#endif
     MONS_ORB_GUARDIAN,
 
     MONS_GOLEM,                 // genus
@@ -471,6 +474,9 @@ enum monster_type                      // env.mons[].type
     MONS_TENGU_CONJURER,
     MONS_TENGU_REAVER,
     MONS_FENSTRIDER_WITCH,
+    MONS_SPHINX,              // genus
+    MONS_SPHINX_MARAUDER,
+    MONS_GUARDIAN_SPHINX,
 #endif
     MONS_MINOTAUR,
     MONS_NAGA,
@@ -510,6 +516,7 @@ enum monster_type                      // env.mons[].type
     MONS_OGRE_MAGE,
 #if TAG_MAJOR_VERSION > 34
     MONS_ONI,
+    MONS_ONI_INCARCERATOR,
 #endif
     MONS_TROLL,
 #if TAG_MAJOR_VERSION == 34
@@ -665,7 +672,9 @@ enum monster_type                      // env.mons[].type
 
     // Demons:
     MONS_CRIMSON_IMP,
+#if TAG_MAJOR_VERSION == 34
     MONS_QUASIT,
+#endif
     MONS_WHITE_IMP,
     MONS_LEMURE,
     MONS_UFETUBUS,
@@ -1307,6 +1316,10 @@ enum monster_type                      // env.mons[].type
     MONS_RENDING_BLADE,
     MONS_SHADOW_TURRET,
     MONS_ALDERKING,
+    MONS_ONI_INCARCERATOR,
+    MONS_WYRMHOLE,
+    MONS_SPHINX,                  // genus
+    MONS_SPHINX_MARAUDER,
 #endif
 
     NUM_MONSTERS,               // used for polymorph

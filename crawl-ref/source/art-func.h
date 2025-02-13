@@ -35,6 +35,7 @@
 #include "fineff.h"        // For the Storm Queen's Shield
 #include "god-conduct.h"   // did_god_conduct
 #include "mgen-data.h"     // For Sceptre of Asmodeus
+#include "melee-attack.h"  // For Fungal Fisticloak
 #include "message.h"
 #include "monster.h"
 #include "mon-death.h"     // For demon axe's SAME_ATTITUDE
@@ -62,6 +63,8 @@
 #define SS_WELCOME_KEY "ss_welcome"
 // similarly, for the majin-bo
 #define MB_WELCOME_KEY "mb_welcome"
+// similarly, for the Skull of Zonguldrok
+#define ZONGULDROK_WELCOME_KEY "zonguldrok_welcome"
 
 /*******************
  * Helper functions.
@@ -682,7 +685,7 @@ static void _WYRMBANE_melee_effects(item_def* weapon, actor* attacker,
         return;
 
     // The cap can be reached by:
-    // * iron dragon, golden dragon, pearl dragon (18)
+    // * iron dragon, golden dragon, pearl dragon, wyrmhole (18)
     // * Xtahua (19)
     // * bone dragon, Serpent of Hell (20)
     // * Tiamat (22)
@@ -1202,15 +1205,10 @@ static int _octorings_worn()
 {
     int worn = 0;
 
-    for (int i = EQ_LEFT_RING; i < NUM_EQUIP; ++i)
-    {
-        if (you.melded[i] || you.equip[i] == -1)
-            continue;
-
-        item_def& ring = you.inv[you.equip[i]];
-        if (is_unrandom_artefact(ring, UNRAND_OCTOPUS_KING_RING))
+    vector<item_def*> rings = you.equipment.get_slot_items(SLOT_RING);
+    for (item_def* ring : rings)
+        if (is_unrandom_artefact(*ring, UNRAND_OCTOPUS_KING_RING))
             worn++;
-    }
 
     return worn;
 }
@@ -1736,7 +1734,7 @@ static void _reset_victory_stats(item_def *item)
 
 static void _VICTORY_unequip(item_def *item, bool */*show_msgs*/)
 {
-    if (!player_equip_unrand(UNRAND_VICTORY, true))
+    if (!you.unrand_equipped(UNRAND_VICTORY, true))
         _reset_victory_stats(item);
 }
 
@@ -1849,4 +1847,82 @@ static void _CHARLATANS_ORB_unequip(item_def */*item*/, bool */*show_msgs*/)
     invalidate_agrid(true);
     calc_hp(true);
     calc_mp(true);
+}
+
+/////////////////////////////////////////////////////
+static void _SKULL_OF_ZONGULDROK_equip(item_def *item, bool *show_msgs, bool /*unmeld*/)
+{
+    const bool should_msg = !show_msgs || *show_msgs;
+    if (should_msg)
+    {
+        const string key = !item->props.exists(ZONGULDROK_WELCOME_KEY)
+                                ? "zonguldrok greeting"
+                                : "zonguldrok reprise";
+
+        const string msg = "A voice whispers, \"" + getSpeakString(key) + "\"";
+        mprf(MSGCH_TALK, "%s", msg.c_str());
+        item->props[ZONGULDROK_WELCOME_KEY].get_bool() = true;
+    }
+}
+
+static void _SKULL_OF_ZONGULDROK_unequip(item_def */*item*/, bool *show_msgs)
+{
+    const bool should_msg = !show_msgs || *show_msgs;
+    if (should_msg)
+    {
+        const string msg = "A voice whispers, \"" +
+                            getSpeakString("zonguldrok farewell") + "\"";
+        mprf(MSGCH_TALK, "%s", msg.c_str());
+    }
+}
+
+///////////////////////////////////////////////////
+static void _FISTICLOAK_equip(item_def */*item*/, bool *show_msgs, bool unmeld)
+{
+    if (!unmeld)
+    {
+        _equip_mpr(show_msgs, getSpeakString("fungus thoughts").c_str());
+
+        if (you_worship(GOD_FEDHAS))
+            god_speaks(GOD_FEDHAS, "Fedhas smiles on your commitment to the cycle of life.");
+    }
+}
+
+static void _FISTICLOAK_unequip(item_def */*item*/, bool *show_msgs)
+{
+    const bool should_msg = !show_msgs || *show_msgs;
+    if (should_msg)
+        mpr("Your thoughts feel a little more lonely.");
+}
+
+static void _FISTICLOAK_world_reacts(item_def */*item*/)
+{
+    // First, a chance of flavor message.
+    if (one_chance_in(1500))
+        mprf(MSGCH_TALK, "%s", getSpeakString("fungus thoughts").c_str());
+
+    // Now, the chance for our shroompunch
+    if (!one_chance_in(4))
+        return;
+
+    vector<monster*> targs;
+    for (adjacent_iterator ai(you.pos()); ai; ++ai)
+        if (monster* mon = monster_at(*ai))
+            if (you.can_see(*mon) && !mon->wont_attack() && !mon->is_firewood())
+                targs.push_back(mon);
+
+    if (targs.empty())
+        return;
+
+    monster* targ = targs[random2(targs.size())];
+
+    melee_attack shred(&you, targ);
+    shred.player_do_aux_attack(UNAT_FUNGAL_FISTICLOAK);
+}
+
+///////////////////////////////////////////////////
+static void _VAINGLORY_equip(item_def */*item*/, bool *show_msgs, bool unmeld)
+{
+    if (!unmeld)
+        _equip_mpr(show_msgs, "You feel supremely confident.");
 }

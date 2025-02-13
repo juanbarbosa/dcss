@@ -444,7 +444,8 @@ bool mons_class_flag(monster_type mc, monclass_flags_t bits)
     return me && (me->bitfields & bits);
 }
 
-int monster::wearing(equipment_type slot, int sub_type) const
+int monster::wearing(object_class_type obj_type, int sub_type,
+                     bool count_plus, bool) const
 {
     int ret = 0;
     const item_def *item = 0;
@@ -452,10 +453,10 @@ int monster::wearing(equipment_type slot, int sub_type) const
     if (!alive())
         return 0;
 
-    switch (slot)
+    switch (obj_type)
     {
-    case EQ_WEAPON:
-    case EQ_STAFF:
+    case OBJ_WEAPONS:
+    case OBJ_STAVES:
         {
             const mon_inv_type end = mons_wields_two_weapons(*this)
                                      ? MSLOT_ALT_WEAPON : MSLOT_WEAPON;
@@ -463,8 +464,7 @@ int monster::wearing(equipment_type slot, int sub_type) const
             for (int i = MSLOT_WEAPON; i <= end; i = i + 1)
             {
                 item = mslot_item((mon_inv_type) i);
-                if (item && item->base_type == (slot == EQ_WEAPON ? OBJ_WEAPONS
-                                                                  : OBJ_STAVES)
+                if (item && item->base_type == obj_type
                     && item->sub_type == sub_type)
                 {
                     ret++;
@@ -473,44 +473,34 @@ int monster::wearing(equipment_type slot, int sub_type) const
         }
         break;
 
-    case EQ_ALL_ARMOUR:
-    case EQ_CLOAK:
-    case EQ_HELMET:
-    case EQ_GLOVES:
-    case EQ_BOOTS:
-    case EQ_OFFHAND:
+    case OBJ_ARMOUR:
+
         item = mslot_item(MSLOT_SHIELD);
         if (item && item->is_type(OBJ_ARMOUR, sub_type))
             ret++;
-        // Don't check MSLOT_ARMOUR for EQ_OFFHAND
-        if (slot == EQ_OFFHAND)
-            break;
-        // intentional fall-through
-    case EQ_BODY_ARMOUR:
+
         item = mslot_item(MSLOT_ARMOUR);
         if (item && item->is_type(OBJ_ARMOUR, sub_type))
             ret++;
         break;
 
-    case EQ_AMULET:
-    case EQ_RINGS:
-    case EQ_RINGS_PLUS:
+    case OBJ_JEWELLERY:
         item = mslot_item(MSLOT_JEWELLERY);
         if (item && item->is_type(OBJ_JEWELLERY, sub_type))
         {
-            if (slot == EQ_RINGS_PLUS)
+            if (count_plus)
                 ret += item->plus;
             else
                 ret++;
         }
         break;
     default:
-        die("invalid slot %d for monster::wearing()", slot);
+        die("invalid object type %d for monster::wearing()", obj_type);
     }
     return ret;
 }
 
-int monster::wearing_ego(equipment_type slot, int special) const
+int monster::wearing_ego(object_class_type obj_type, int special) const
 {
     int ret = 0;
     const item_def *item = 0;
@@ -518,9 +508,9 @@ int monster::wearing_ego(equipment_type slot, int special) const
     if (!alive())
         return 0;
 
-    switch (slot)
+    switch (obj_type)
     {
-    case EQ_WEAPON:
+    case OBJ_WEAPONS:
         {
             const mon_inv_type end = mons_wields_two_weapons(*this)
                                      ? MSLOT_ALT_WEAPON : MSLOT_WEAPON;
@@ -537,23 +527,7 @@ int monster::wearing_ego(equipment_type slot, int special) const
         }
         break;
 
-    case EQ_ALL_ARMOUR:
-    case EQ_CLOAK:
-    case EQ_HELMET:
-    case EQ_GLOVES:
-    case EQ_BOOTS:
-    case EQ_OFFHAND:
-        item = mslot_item(MSLOT_SHIELD);
-        if (item && item->base_type == OBJ_ARMOUR
-            && get_armour_ego_type(*item) == special)
-        {
-            ret++;
-        }
-        // Don't check MSLOT_ARMOUR for EQ_OFFHAND
-        if (slot == EQ_OFFHAND)
-            break;
-        // intentional fall-through
-    case EQ_BODY_ARMOUR:
+    case OBJ_ARMOUR:
         item = mslot_item(MSLOT_ARMOUR);
         if (item && item->base_type == OBJ_ARMOUR
             && get_armour_ego_type(*item) == special)
@@ -562,15 +536,13 @@ int monster::wearing_ego(equipment_type slot, int special) const
         }
         break;
 
-    case EQ_AMULET:
-    case EQ_STAFF:
-    case EQ_RINGS:
-    case EQ_RINGS_PLUS:
+    case OBJ_JEWELLERY:
+    case OBJ_STAVES:
         // No egos.
         break;
 
     default:
-        die("invalid slot %d for monster::wearing_ego()", slot);
+        die("invalid object type %d for monster::wearing_ego()", obj_type);
     }
     return ret;
 }
@@ -718,6 +690,7 @@ bool mons_class_is_draconic(monster_type mc)
         case MONS_DRAGON:
         case MONS_DRAKE:
         case MONS_DRACONIAN:
+        case MONS_WYRMHOLE:
             return true;
         default:
             return false;
@@ -2039,6 +2012,8 @@ mon_attack_def mons_attack_spec(const monster& m, int attk_number,
     {
         if (m.has_ench(ENCH_FIRE_CHAMPION))
             attk.flavour = AF_FIRE;
+        else if (m.has_ench(ENCH_CHAOS_LACE))
+            attk.flavour = AF_CHAOTIC;
 
         if (mon.type == MONS_PLAYER_SHADOW)
         {
@@ -2130,12 +2105,6 @@ mon_attack_def mons_attack_spec(const monster& m, int attk_number,
 
         if (attk.type == AT_CHERUB)
             attk.type = random_choose(AT_HEADBUTT, AT_BITE, AT_PECK, AT_GORE);
-
-        if (attk.flavour == AF_DRAIN_STAT)
-        {
-            attk.flavour = random_choose(AF_DRAIN_STR, AF_DRAIN_INT,
-                                         AF_DRAIN_DEX);
-        }
     }
 
     // Slime creature attacks are multiplied by the number merged.
@@ -2266,6 +2235,7 @@ bool flavour_triggers_damageless(attack_flavour flavour)
     return flavour == AF_CRUSH
         || flavour == AF_ENGULF
         || flavour == AF_PURE_FIRE
+        || flavour == AF_AIRSTRIKE
         || flavour == AF_SHADOWSTAB
         || flavour == AF_DROWN
         || flavour == AF_CORRODE;
@@ -2316,6 +2286,9 @@ int flavour_damage(attack_flavour flavour, int HD, bool random)
             if (random)
                 return roll_dice(4, 3);
             return 12;
+        // Just show max damage: this number's only used for display.
+        case AF_AIRSTRIKE:
+            return pow(HD + 1, 1.2) * 12 / 6;
         default:
             return 0;
     }
@@ -2498,7 +2471,7 @@ int exper_value(const monster& mon, bool real, bool legacy)
         if (mon.has_ench(ENCH_BERSERK))
             maxhp = (maxhp * 2 + 1) / 3;
 
-        if (mon.has_ench(ENCH_DOUBLED_VIGOUR))
+        if (mon.has_ench(ENCH_DOUBLED_HEALTH))
             maxhp = maxhp / 2;
     }
     else
@@ -2570,6 +2543,7 @@ int exper_value(const monster& mon, bool real, bool legacy)
             case SPELL_PHANTOM_BLITZ:
             case SPELL_BLINK_RANGE:
             case SPELL_PETRIFY:
+            case SPELL_VEX:
                 diff += 20;
                 break;
 
@@ -3607,18 +3581,9 @@ bool mons_is_removed(monster_type mc)
     return mc != MONS_PROGRAM_BUG && mons_species(mc) == MONS_PROGRAM_BUG;
 }
 
-bool mons_looks_stabbable(const monster& m)
-{
-    const stab_type st = find_stab_type(&you, m, false);
-    return stab_bonus_denom(st) == 1; // top-tier stab
-}
-
 bool mons_looks_distracted(const monster& m)
 {
-    const stab_type st = find_stab_type(&you, m, false);
-    return !m.friendly()
-           && st != STAB_NO_STAB
-           && !mons_looks_stabbable(m);
+    return m.foe != MHITYOU && m.behaviour != BEH_BATTY && !m.friendly();
 }
 
 void mons_start_fleeing_from_sanctuary(monster& mons)
@@ -3728,7 +3693,7 @@ static bool _beneficial_beam_flavour(beam_type flavour)
     {
     case BEAM_HASTE:
     case BEAM_HEALING:
-    case BEAM_DOUBLE_VIGOUR:
+    case BEAM_DOUBLE_HEALTH:
     case BEAM_INVISIBILITY:
     case BEAM_MIGHT:
     case BEAM_AGILITY:
@@ -3788,7 +3753,7 @@ bool mons_should_fire(bolt &beam, bool ignore_good_idea)
  *
  * @param monspell      The spell in question.
  * @param attack_only   Whether to only count spells which directly harm
- *                      enemies (damage or stat drain). Overrides ench_too.
+ *                      enemies (ie: do damage). Overrides ench_too.
  * @param ench_too      Whether to count temporary debilitating effects (Slow,
  *                      etc).
  * @return              Whether the given spell should be considered 'ranged'.
@@ -4181,15 +4146,15 @@ void mons_remove_from_grid(const monster& mon)
         env.mgrid(pos) = NON_MONSTER;
 }
 
-mon_inv_type equip_slot_to_mslot(equipment_type eq)
+mon_inv_type equip_slot_to_mslot(equipment_slot eq)
 {
     switch (eq)
     {
-    case EQ_WEAPON:      return MSLOT_WEAPON;
-    case EQ_BODY_ARMOUR: return MSLOT_ARMOUR;
-    case EQ_OFFHAND:      return MSLOT_SHIELD;
-    case EQ_RINGS:
-    case EQ_AMULET:      return MSLOT_JEWELLERY;
+    case SLOT_WEAPON:       return MSLOT_WEAPON;
+    case SLOT_BODY_ARMOUR:  return MSLOT_ARMOUR;
+    case SLOT_OFFHAND:      return MSLOT_SHIELD;
+    case SLOT_RING:
+    case SLOT_AMULET:       return MSLOT_JEWELLERY;
     default: return NUM_MONSTER_SLOTS;
     }
 }

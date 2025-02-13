@@ -48,6 +48,7 @@
 #include "directn.h"
 #include "dungeon.h"
 #include "end.h"
+#include "english.h"
 #include "tile-env.h"
 #include "errors.h"
 #include "player-save-info.h"
@@ -778,6 +779,9 @@ static vector<player_save_info> _find_saved_characters()
             }
             catch (ext_fail_exception &E)
             {
+#ifndef DEBUG_DIAGNOSTICS
+                UNUSED(E);
+#endif
                 dprf("%s: %s", filename.c_str(), E.what());
             }
             catch (game_ended_condition &E) // another process is using the save
@@ -2224,12 +2228,6 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
     if (load_mode != LOAD_VISITOR)
         you.set_level_visited(level_id::current());
 
-    // Markers must be activated early, since they may rely on
-    // events issued later, e.g. DET_ENTERING_LEVEL or
-    // the DET_TURN_ELAPSED from update_level.
-    if (make_changes || load_mode == LOAD_RESTART_GAME)
-        env.markers.activate_all();
-
     const bool descent_downclimb = crawl_state.game_is_descent()
                                    && feat_stair_direction(stair_taken) == CMD_GO_DOWNSTAIRS
                                    && !feat_is_descent_exitable(stair_taken);
@@ -2237,6 +2235,15 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
                               && !feat_is_escape_hatch(stair_taken)
                               && stair_taken != DNGN_TRAP_SHAFT
                               && old_level.branch == you.where_are_you;
+
+    // Markers must be activated early, since they may rely on
+    // events issued later, e.g. DET_ENTERING_LEVEL or
+    // the DET_TURN_ELAPSED from update_level.
+    if (make_changes || load_mode == LOAD_RESTART_GAME)
+    {
+        bool message = !(load_mode == LOAD_RESTART_GAME && descent_peek);
+        env.markers.activate_all(message);
+    }
 
     if (make_changes && env.elapsed_time && !just_created_level && !descent_peek)
         update_level(you.elapsed_time - env.elapsed_time);
@@ -2886,7 +2893,7 @@ save_version read_ghost_header(reader &inf)
         // Discard three more 32-bit words of padding.
         inf.read(nullptr, 3*4);
     }
-    catch (short_read_exception &E)
+    catch (const short_read_exception&)
     {
         mprf(MSGCH_ERROR,
              "Ghost file \"%s\" seems to be invalid (short read); deleting it.",
@@ -2928,7 +2935,7 @@ vector<ghost_demon> load_bones_file(string ghost_filename, bool backup)
         result = tag_read_ghosts(inf);
         inf.fail_if_not_eof(ghost_filename);
     }
-    catch (short_read_exception &short_read)
+    catch (const short_read_exception&)
     {
         string error = "Broken bones file: " + ghost_filename;
         throw corrupted_save(error, version);
@@ -3196,8 +3203,8 @@ static bool _restore_game(const string& filename)
     if (!crawl_state.bypassed_startup_menu
         && menu_game_type != crawl_state.type)
     {
-        if (!yesno(("You already have a "
-                        + _type_name_processed(save_info.saved_game_type) +
+        auto atype = article_a(_type_name_processed(save_info.saved_game_type));
+        if (!yesno(("You already have " + atype +
                     " game saved under the name '" + save_info.name + "';\n"
                     "do you want to load that instead?").c_str(),
                    true, 'n'))
@@ -3467,7 +3474,7 @@ save_version get_save_version(reader &file)
         if (minor == UINT8_MAX)
             minor = unmarshallInt(file);
     }
-    catch (short_read_exception& E)
+    catch (const short_read_exception&)
     {
         // Empty file?
         return save_version(-1, -1);
@@ -3571,7 +3578,7 @@ static player_save_info _read_character_info(package *save)
         result.save_loadable = _loadable_save_ver(major, minor);
         return result;
     }
-    catch (short_read_exception &E)
+    catch (const short_read_exception &)
     {
         fail("Save file `%s` corrupted (short read)", save->get_filename().c_str());
     };
@@ -3647,7 +3654,7 @@ static bool _restore_tagged_chunk(package *save, const string &name,
     {
         tag_read(inf, tag);
     }
-    catch (short_read_exception &E)
+    catch (const short_read_exception&)
     {
         fail("truncated save chunk (%s)", name.c_str());
     };

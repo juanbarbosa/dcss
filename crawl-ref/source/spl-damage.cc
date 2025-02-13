@@ -847,12 +847,6 @@ spret fire_los_attack_spell(spell_type spell, int pow, const actor* agent,
     return _cast_los_attack_spell(spell, pow, agent, true, fail, damage_done);
 }
 
-dice_def freeze_damage(int pow, bool random)
-{
-    return dice_def(1, random ? 3 + div_rand_round(pow * 3, 10)
-                              : 3 + pow * 3 / 10);
-}
-
 spret cast_freeze(int pow, monster* mons, bool fail)
 {
     pow = min(25, pow);
@@ -880,10 +874,10 @@ spret cast_freeze(int pow, monster* mons, bool fail)
     set_attack_conducts(conducts, *mons);
 
     bolt beam;
-    beam.flavour = BEAM_COLD;
     beam.thrower = KILL_YOU;
+    zappy(ZAP_FREEZE, pow, false, beam);
 
-    const int orig_hurted = freeze_damage(pow, true).roll();
+    const int orig_hurted = beam.damage.roll();
     // calculate the resist adjustment to punctuate
     int hurted = mons_adjust_flavoured(mons, beam, orig_hurted, false);
     mprf("You freeze %s%s%s",
@@ -932,6 +926,25 @@ int airstrike_space_around(coord_def target, bool count_unseen)
     return empty_space;
 }
 
+string airstrike_intensity_display(int empty_space, tileidx_t& tile)
+{
+    if (empty_space < 3)
+    {
+        tile = TILE_BOLT_WEAK_AIR;
+        return "The confined air twists around weakly";
+    }
+    else if (empty_space < 6)
+    {
+        tile = TILE_BOLT_MEDIUM_AIR;
+        return "The air twists around";
+    }
+    else
+    {
+        tile = TILE_BOLT_STRONG_AIR;
+        return "The open air twists around violently";
+    }
+}
+
 spret cast_airstrike(int pow, coord_def target, bool fail)
 {
     if (cell_is_solid(target))
@@ -960,6 +973,7 @@ spret cast_airstrike(int pow, coord_def target, bool fail)
 
     bolt pbeam;
     pbeam.flavour = BEAM_AIR;
+    tileidx_t tile = TILE_BOLT_DEFAULT_WHITE;
 
     const int empty_space = airstrike_space_around(target, true);
 
@@ -971,11 +985,13 @@ spret cast_airstrike(int pow, coord_def target, bool fail)
 #endif
     hurted = mons->apply_ac(mons->beam_resists(pbeam, hurted, false));
     dprf("preac: %d, postac: %d", preac, hurted);
-
-    mprf("The air twists around and strikes %s%s%s",
+    mprf("%s and strikes %s%s%s",
+         airstrike_intensity_display(empty_space, tile).c_str(),
          mons->name(DESC_THE).c_str(),
          hurted ? "" : " but does no damage",
          attack_strength_punctuation(hurted).c_str());
+
+    flash_tile(mons->pos(), WHITE, 60, tile);
     _player_hurt_monster(*mons, hurted, pbeam.flavour);
 
     if (mons->alive())
@@ -3440,23 +3456,25 @@ static bool _toxic_can_affect(const actor *act)
     return act->res_poison() < (act->is_player() ? 3 : 1);
 }
 
-spret cast_toxic_radiance(actor *agent, int pow, bool fail, bool mon_tracer)
+spret cast_toxic_radiance(actor *agent, int pow, bool fail, bool tracer)
 {
-    // XXX: This must come before the player check, due to Marionette.
-    if (mon_tracer)
+    if (tracer)
     {
-        for (actor_near_iterator ai(agent->pos(), LOS_NO_TRANS); ai; ++ai)
+        for (actor_near_iterator ai(agent, LOS_NO_TRANS); ai; ++ai)
         {
             if (!_toxic_can_affect(*ai) || mons_aligned(agent, *ai))
                 continue;
-            else
-                return spret::success;
+            const monster* mons = ai->as_monster();
+            if (mons && !mons_is_threatening(*mons))
+                continue;
+            return spret::success;
         }
 
         // Didn't find any susceptible targets
         return spret::abort;
     }
-    else if (agent->is_player())
+
+    if (agent->is_player())
     {
         targeter_radius hitfunc(&you, LOS_NO_TRANS);
         if (stop_attack_prompt(hitfunc, "poison", _toxic_can_affect))
@@ -3831,6 +3849,10 @@ spret cast_searing_ray(actor& agent, int pow, bolt &beam, bool fail)
         agent.props[SEARING_RAY_MID_KEY].get_int() = targ->mid;
     else
         agent.props.erase(SEARING_RAY_MID_KEY);
+
+    // Announce lock-on, if this causes one.
+    if (targ && !beam.aimed_at_spot && agent.is_player())
+        mprf("You focus your ray upon %s.", targ->name(DESC_THE).c_str());
 
     if (agent.is_player())
         start_channelling_spell(SPELL_SEARING_RAY, "maintain the ray");
@@ -4893,6 +4915,15 @@ static map<beam_type, colour_t> concoction_colour =
     { BEAM_MMISSILE, YELLOW },
 };
 
+static map<beam_type, tileidx_t> concoction_tile =
+{
+    { BEAM_FIRE, TILE_BOLT_FULSOME_FIRE },
+    { BEAM_COLD, TILE_BOLT_FULSOME_ICE },
+    { BEAM_POISON_ARROW, TILE_BOLT_FULSOME_POISON },
+    { BEAM_ELECTRICITY, TILE_BOLT_FULSOME_ELECTRIC },
+    { BEAM_MMISSILE, TILE_BOLT_FULSOME_QUINTESSENCE },
+};
+
 static vector<pair<beam_type, int>> reaction_effects =
 {
     { BEAM_NONE, 200 },
@@ -4906,7 +4937,7 @@ static vector<pair<beam_type, int>> reaction_effects =
 
 static void _show_fusillade_explosion(map<coord_def, beam_type>& hit_map,
                                       vector<coord_def>& exp_map,
-                                      bool quick_anim)
+                                      coord_def center, bool quick_anim)
 {
     if (!(Options.use_animations & UA_BEAM))
         return;
@@ -4921,6 +4952,10 @@ static void _show_fusillade_explosion(map<coord_def, beam_type>& hit_map,
                        colour == YELLOW ? int{TILE_BOLT_IRRADIATE} : 0);
         }
     }
+
+    // Flash a visible flask at the center spot after the explosions.
+    flash_tile(center, concoction_colour[hit_map[center]], 0,
+                       concoction_tile[hit_map[center]]);
 
     animation_delay(quick_anim ? 0 : 50, true);
 }
@@ -4991,7 +5026,7 @@ static void _calc_fusillade_explosion(coord_def center, beam_type flavour,
 
     noisy(15, center, MID_PLAYER);
 
-    _show_fusillade_explosion(hit_map, exp_map, quick_anim);
+    _show_fusillade_explosion(hit_map, exp_map, center, quick_anim);
 }
 
 void fire_fusillade()

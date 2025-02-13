@@ -577,7 +577,7 @@ static void _maybe_spawn_rats(int dam, kill_method_type death_type)
 {
     if (dam <= 0
         || death_type == KILLED_BY_POISON
-        || !player_equip_unrand(UNRAND_RATSKIN_CLOAK))
+        || !you.unrand_equipped(UNRAND_RATSKIN_CLOAK))
     {
         return;
     }
@@ -792,13 +792,19 @@ static void _maybe_fog(int dam)
     }
 }
 
-static void _deteriorate(int dam)
+static void _handle_poor_constitution(int dam)
 {
-    if (x_chance_in_y(you.get_mutation_level(MUT_DETERIORATION), 4)
-        && dam > you.hp_max / 10)
+    const int level = you.get_mutation_level(MUT_POOR_CONSTITUTION);
+
+    if (level == 0)
+        return;
+
+    if (dam > you.hp_max / 15 && one_chance_in(level == 1 ? 9 : 6))
     {
-        mprf(MSGCH_WARN, "Your body deteriorates!");
-        lose_stat(STAT_RANDOM, 1);
+        you.weaken(nullptr, 20);
+
+        if (level == 2 && one_chance_in(2))
+            you.slow_down(nullptr, random_range(8, 15));
     }
 }
 
@@ -1051,9 +1057,10 @@ static void _print_endgame_messages(scorefile_entry &se)
  *  @param aux what did they do it with?
  *  @param see_source whether the attacker was visible to you
  *  @param death_source_name the attacker's name if it is already dead.
+ *  @param skip_multipliers Whether to ignore harm/vitrify/etc.
  */
 void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
-          bool see_source, const char *death_source_name)
+          bool see_source, const char *death_source_name, bool skip_multipliers)
 {
     ASSERT(!crawl_state.game_is_arena());
     if (you.duration[DUR_TIME_STEP])
@@ -1073,7 +1080,7 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
     }
 
     // Multiply damage if Harm or Vitrify is in play. (Poison is multiplied earlier.)
-    if (dam != INSTANT_DEATH && death_type != KILLED_BY_POISON)
+    if (dam != INSTANT_DEATH && death_type != KILLED_BY_POISON && !skip_multipliers)
     {
         dam = _apply_extra_harm(dam, source);
 
@@ -1128,7 +1135,7 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
             return;
         // the dreamshard necklace protects from any fatal blow or death source
         // that death's door would protect from.
-        else if (player_equip_unrand(UNRAND_DREAMSHARD_NECKLACE)
+        else if (you.unrand_equipped(UNRAND_DREAMSHARD_NECKLACE)
                  && dam >= you.hp)
         {
             dreamshard_shatter();
@@ -1207,7 +1214,7 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
             take_note(Note(NOTE_HP_CHANGE, you.hp, you.hp_max,
                            damage_desc.c_str()));
 
-            _deteriorate(dam);
+            _handle_poor_constitution(dam);
             _maybe_ru_retribution(dam, source);
             _maybe_inflict_anguish(dam, source);
             _maybe_spawn_monsters(dam, death_type, source);

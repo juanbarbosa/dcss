@@ -276,6 +276,14 @@ static const duration_def duration_data[] =
       RED, "Stone",
       "petrified", "",
       "You are petrified.", D_DISPELLABLE},
+    { DUR_VEXED,
+      RED, "Vexed",
+      "vexed", "vex",
+      "You are vexed.", D_DISPELLABLE,
+      {{ "", []() {
+            mprf(MSGCH_DURATION, "You feel more in control of yourself again.");
+            you.give_stun_immunity(random_range(1, 3));
+      }}}},
     { DUR_PETRIFYING,
       LIGHTRED, "Petr",
       "petrifying", "",
@@ -434,6 +442,11 @@ static const duration_def duration_data[] =
       "immotile", "",
       "You are unable to move around.", D_DISPELLABLE,
       {{ "You are able to move again." }}},
+    { DUR_VAINGLORY,
+      RED, "Vainglory",
+      "no stairs", "",
+      "You refuse to leave the level so soon after announcing yourself.", D_EXPIRES,
+      {{ "You feel willing to depart the floor again." }}},
     { DUR_ENLIGHTENED,
       BLUE, "Will+",
       "enlightened", "",
@@ -704,11 +717,10 @@ static const duration_def duration_data[] =
     { DUR_TIME_STEP, 0, "", "", "time step", "", D_NO_FLAGS},
     { DUR_ICEMAIL_DEPLETED, 0, "", "", "icemail depleted", "", D_NO_FLAGS,
       {{ "Your icy envelope is restored.", _redraw_armour }}},
-    { DUR_PARALYSIS_IMMUNITY, 0, "", "", "paralysis immunity", "", D_NO_FLAGS},
+    { DUR_STUN_IMMUNITY, 0, "", "", "immune to disabling effects", "", D_NO_FLAGS},
     { DUR_VEHUMET_GIFT, 0, "", "", "vehumet gift", "", D_NO_FLAGS, {{""}}},
     { DUR_SICKENING, 0, "", "", "sickening", "", D_NO_FLAGS, {{""}}},
     { DUR_WATER_HOLD, 0, "", "", "drowning", "", D_NO_FLAGS},
-    { DUR_SLEEP_IMMUNITY, 0, "", "", "sleep immunity", "", D_NO_FLAGS, {{""}}},
     // Regeneration information handled separately.
     { DUR_TROGS_HAND, 0, "", "strong-willed", "trogs hand",
       "Your willpower is greatly increased.", D_EXPIRES,
@@ -716,9 +728,6 @@ static const duration_def duration_data[] =
           {"You feel the effects of Trog's Hand fading.", 1}}, 6},
     { DUR_GOZAG_GOLD_AURA, 0, "", "gold aura", "", "", D_NO_FLAGS,
         {{ "", []() { you.props[GOZAG_GOLD_AURA_KEY] = 0; you.redraw_title = true;}}}},
-    { DUR_COLLAPSE, 0, "", "", "collapse", "", D_NO_FLAGS },
-    { DUR_BRAINLESS, 0, "", "", "brainless", "", D_NO_FLAGS },
-    { DUR_CLUMSY, 0, "", "", "clumsy", "", D_NO_FLAGS },
     { DUR_ANCESTOR_DELAY, 0, "", "", "ancestor delay", "", D_NO_FLAGS, {{""}}},
     { DUR_GRASPING_ROOTS, 0, "", "grasped by roots", "grasping roots",
       "You are constricted by grasping roots.", D_NO_FLAGS},
@@ -742,7 +751,7 @@ static const duration_def duration_data[] =
       }}}},
     { DUR_NO_SCROLLS, 0, "", "", "no scrolls", "", D_NO_FLAGS,
       {{ "", []() {
-          if (!you.duration[DUR_BRAINLESS] && !player_in_branch(BRANCH_GEHENNA))
+          if (!player_in_branch(BRANCH_GEHENNA))
               mprf(MSGCH_RECOVERY, "You can read scrolls again.");
       }}}},
     { DUR_REVELATION, 0, "", "", "revelation", "", D_NO_FLAGS, {{""}}},
@@ -813,5 +822,9 @@ static const duration_def duration_data[] =
     { DUR_LOCKED_DOWN, 0, "", "", "old stuck", "", D_NO_FLAGS },
     { DUR_BINDING_SIGIL_WARNING, 0, "", "", "old binding sigil", "", D_NO_FLAGS },
     { DUR_DUEL_COMPLETE, 0, "", "", "old duel complete", "", D_NO_FLAGS },
+    { DUR_COLLAPSE, 0, "", "", "old collapse", "", D_NO_FLAGS },
+    { DUR_BRAINLESS, 0, "", "", "old brainless", "", D_NO_FLAGS },
+    { DUR_CLUMSY, 0, "", "", "old clumsy", "", D_NO_FLAGS },
+    { DUR_SLEEP_IMMUNITY, 0, "", "", "old sleep immunity", "", D_NO_FLAGS, {{""}}},
 #endif
 };

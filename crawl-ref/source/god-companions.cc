@@ -717,9 +717,9 @@ void beogh_recruit_apostle()
     }
 
     if (msg.length() > 0)
-        msg += "you anoint them with ash and charcoal and welcome them as a companion.";
+        msg += "you anoint " + real->pronoun(PRONOUN_OBJECTIVE) + " with ash and charcoal and welcome " + real->pronoun(PRONOUN_OBJECTIVE) + " as a companion.";
     else
-        msg += "You anoint " + real->name(DESC_THE, true) + " with ash and charcoal and welcome them as a companion.";
+        msg += "You anoint " + real->name(DESC_THE, true) + " with ash and charcoal and welcome " + real->pronoun(PRONOUN_OBJECTIVE) + " as a companion.";
 
     mpr(msg.c_str());
 
@@ -854,7 +854,7 @@ static int _get_apostle_revival_cost()
     return amount;
 }
 
-static apostle_data& _get_saved_apostle(const monster apostle)
+static apostle_data& _get_saved_apostle(const monster& apostle)
 {
     for (unsigned int i = 1; i < apostles.size(); ++i)
     {
@@ -863,7 +863,7 @@ static apostle_data& _get_saved_apostle(const monster apostle)
     }
 
     // Should be impossible to reach here unless we did something wrong
-    ASSERT(false);
+    die("apostle %s not found", apostle.name(DESC_THE).c_str());
 }
 
 int get_num_apostles()

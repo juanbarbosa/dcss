@@ -984,7 +984,7 @@ COLOUR:  " = green
 COLOUR:  ? = lightgreen
 : sewer_setup(_G)
 KITEM:   ' = scroll of noise pre_id w:50 / \
-             potion of degeneration pre_id w:100 / \
+             potion of moonshine pre_id w:100 / \
              potion of mutation pre_id w:30
 MAP
 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -1376,9 +1376,9 @@ MONS:    kobold w:50 / kobold zombie / endoplasm / giant cockroach / \
          bat / bat zombie w:3
 # Bosses and features for the temple, either Makhleb or Kiku
 : if crawl.random2(2) == 0 then
-KMONS:   3 = kobold brigand / quasit
+KMONS:   3 = kobold brigand / crimson imp ; club . dart ego:atropa q:2
 KMONS:   4 = kobold brigand
-KMONS:   5 = quasit
+KMONS:   5 = crimson imp ; club . dart ego:atropa q:2
 KFEAT:   B = altar_makhleb
 MARKER:  F = lua:fog_machine { cloud_type = "flame", pow_min = 100, \
                                pow_max = 100, delay = 10, size = 1, \

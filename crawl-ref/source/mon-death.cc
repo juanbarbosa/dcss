@@ -1325,14 +1325,14 @@ static string _killer_type_name(killer_type killer)
 }
 
 static string _derived_undead_message(const monster &mons, monster_type which_z,
-                                      const char* mist)
+                                      string msg)
 {
     switch (which_z)
     {
     case MONS_SPECTRAL_THING:
     case MONS_SIMULACRUM:
         // XXX: print immediately instead?
-        return make_stringf("A %s mist starts to gather...", mist);
+        return msg;
     case MONS_SKELETON:
     case MONS_ZOMBIE:
         break;
@@ -1372,12 +1372,14 @@ static string _derived_undead_message(const monster &mons, monster_type which_z,
  */
 static void _make_derived_undead(monster* mons, bool quiet,
                                  monster_type which_z, beh_type beh,
-                                 int spell, god_type god)
+                                 int spell, god_type god,
+                                 string msg = "", string fail_msg = "")
 {
     bool requires_corpse = which_z == MONS_ZOMBIE || which_z == MONS_SKELETON;
     // This function is used by several different sorts of things, each with
     // their own validity conditions that are enforced here
-    // - Bind Souls, Death Channel and Yred reaping of unzombifiable things:
+    // - Bind Souls, Death Channel, Yred reaping of unzombifiable things, and
+    //   kills with reaping-branded items:
     if (!requires_corpse
         && !mons_can_be_spectralised(*mons, god == GOD_YREDELEMNUL))
     {
@@ -1389,7 +1391,7 @@ static void _make_derived_undead(monster* mons, bool quiet,
     {
         return;
     }
-    // - all other reaping (brand, chaos, and Yred)
+    // - Yred reaping of living monsters
     if (requires_corpse && !mons_can_be_zombified(*mons))
         return;
 
@@ -1410,6 +1412,9 @@ static void _make_derived_undead(monster* mons, bool quiet,
     // to 2 spaces away, if needbe.
     mg.set_range(0, 2);
 
+    if (spell == MON_SUMM_WPN_REAP)
+        mg.summon_duration = random_range(200, 400);
+
     if (!mons->mname.empty() && !(mons->flags & MF_NAME_NOCORPSE))
         mg.mname = mons->mname;
     else if (mons_is_unique(mons->type))
@@ -1422,9 +1427,15 @@ static void _make_derived_undead(monster* mons, bool quiet,
     if (god == GOD_KIKUBAAQUDGHA || spell == SPELL_BIND_SOULS)
         mg.extra_flags |= (MF_NO_REWARD | MF_HARD_RESET);
 
-    const char* mist = which_z == MONS_SIMULACRUM ? "freezing" :
-                       god == GOD_YREDELEMNUL ? "black" :
-                       "glowing";
+    const string mist = which_z == MONS_SIMULACRUM ? "freezing" :
+                            god == GOD_YREDELEMNUL ? "black"
+                                                   : "glowing";
+
+    if (msg.empty())
+        msg = "A " + mist + " mist starts to gather...";
+
+    if (fail_msg.empty())
+        fail_msg = "A " + mist + " mist gathers momentarily, then fades.";
 
     if (mons->mons_species() == MONS_HYDRA)
     {
@@ -1432,7 +1443,7 @@ static void _make_derived_undead(monster* mons, bool quiet,
         if (mons->heads() == 0)
         {
             if (!quiet && which_z != MONS_SKELETON)
-                mprf("A %s mist gathers momentarily, then fades.", mist);
+                mpr(fail_msg);
             return;
         }
         else
@@ -1449,7 +1460,7 @@ static void _make_derived_undead(monster* mons, bool quiet,
 
     const string message = quiet ? "" :
                            god == GOD_KIKUBAAQUDGHA ? "Kikubaaqudgha cackles." :
-                           _derived_undead_message(*mons, which_z, mist);
+                           _derived_undead_message(*mons, which_z, msg);
     make_derived_undead_fineff::schedule(mons->pos(), mg,
             mons->get_experience_level(), agent_name, message);
 }
@@ -1702,8 +1713,12 @@ static bool _mons_reaped(actor &killer, monster& victim)
         beh = SAME_ATTITUDE(mon);
     }
 
-    _make_derived_undead(&victim, false, MONS_ZOMBIE, beh,
-                         SPELL_NO_SPELL, GOD_NO_GOD);
+    string msg = victim.name(DESC_ITS) + " spirit is torn from " +
+                     victim.pronoun(PRONOUN_POSSESSIVE) + " body!";
+    string fail_msg = victim.name(DESC_ITS) + " spirit is momentarily torn from " +
+                          victim.pronoun(PRONOUN_POSSESSIVE) + " body, then fades!";
+    _make_derived_undead(&victim, !you.can_see(victim), MONS_SPECTRAL_THING, beh,
+                         MON_SUMM_WPN_REAP, GOD_NO_GOD, msg, fail_msg);
 
     return true;
 }
@@ -1714,7 +1729,7 @@ static void _yred_reap(monster &mons, bool uncorpsed)
                            MONS_SPECTRAL_THING;
 
     _make_derived_undead(&mons, false, which_z, BEH_FRIENDLY,
-                         MON_SUMM_REAPING, you.religion);
+                         MON_SUMM_YRED_REAP, you.religion);
 }
 
 static bool _animate_dead_reap(monster &mons)
@@ -1736,7 +1751,7 @@ static bool _reaping(monster &mons)
         return false;
 
     int rd = mons.props[REAPING_DAMAGE_KEY].get_int();
-    const int denom = mons.damage_total * 2;
+    const int denom = mons.damage_total * 3 / 2;
     dprf("Reaping chance: %d/%d", rd, denom);
     if (!x_chance_in_y(rd, denom))
         return false;
@@ -2084,7 +2099,7 @@ static void _player_on_kill_effects(monster& mons, killer_type killer,
         if (_god_will_bless_follower(&mons))
             bless_follower();
 
-        if (you.wearing_ego(EQ_ALL_ARMOUR, SPARM_MAYHEM))
+        if (you.wearing_ego(OBJ_ARMOUR, SPARM_MAYHEM))
             _orb_of_mayhem(you, mons);
     }
 
@@ -2102,13 +2117,13 @@ static void _player_on_kill_effects(monster& mons, killer_type killer,
                  "You feel the power of %s in you as your rage grows.",
                  uppercase_first(god_name(you.religion)).c_str());
         }
-        else if (player_equip_unrand(UNRAND_BLOODLUST) && coinflip())
+        else if (you.unrand_equipped(UNRAND_BLOODLUST) && coinflip())
         {
             const int bonus = (2 + random2(4)) / 2;
             you.increase_duration(DUR_BERSERK, bonus);
             mpr("The necklace of Bloodlust glows a violent red.");
         }
-        else if (player_equip_unrand(UNRAND_TROG) && coinflip())
+        else if (you.unrand_equipped(UNRAND_TROG) && coinflip())
         {
             const int bonus = (2 + random2(4)) / 2;
             you.increase_duration(DUR_BERSERK, bonus);
@@ -2738,7 +2753,7 @@ item_def* monster_die(monster& mons, killer_type killer,
 
             monster* killer_mon = &env.mons[killer_index];
 
-            if (killer_mon->wearing_ego(EQ_ALL_ARMOUR, SPARM_MAYHEM))
+            if (killer_mon->wearing_ego(OBJ_ARMOUR, SPARM_MAYHEM))
                 _orb_of_mayhem(*killer_mon, mons);
 
             if (pet_kill && _god_will_bless_follower(&mons))
@@ -3028,7 +3043,7 @@ item_def* monster_die(monster& mons, killer_type killer,
         mummy_death_curse_fineff::schedule(
                 invalid_monster_index(killer_index)
                                             ? nullptr : &env.mons[killer_index],
-                mons.name(DESC_A),
+                &mons,
                 killer,
                 mummy_curse_power(mons.type));
     }
@@ -3296,10 +3311,11 @@ void monster_cleanup(monster* mons)
         env.forest_awoken_until = 0;
     }
 
-    // Monsters haloes should be removed when they die.
-    if (mons->halo_radius()
-        || mons->umbra_radius()
-        || mons->silence_radius())
+    // Monsters' haloes should be removed when they die.
+    if (mons->halo_radius() >= 0
+        || mons->umbra_radius() >= 0
+        || mons->silence_radius() >= 0
+        || mons->liquefying_radius() >= 0)
     {
         invalidate_agrid();
     }

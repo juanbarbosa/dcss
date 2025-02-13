@@ -55,6 +55,7 @@
 #include "spl-book.h"
 #include "spl-clouds.h"
 #include "spl-damage.h"
+#include "spl-monench.h"
 #include "spl-summoning.h"
 #include "spl-transloc.h"
 #include "spl-util.h"
@@ -982,9 +983,9 @@ static void _handle_boulder_movement(monster& boulder)
     {
         if (you.can_see(boulder))
         {
-            mprf("%s slams into a %s and falls apart!",
+            mprf("%s slams into %s and falls apart!",
                  boulder.name(DESC_THE).c_str(),
-                 feat_type_name(env.grid(targ)));
+                 article_a(feat_type_name(env.grid(targ))).c_str());
         }
         monster_die(boulder, KILL_NONE, true);
         return;
@@ -1148,7 +1149,7 @@ static void _handle_hellfire_mortar(monster& mortar)
             if (i + 1 == path.size())
             {
                 simple_monster_message(mortar, " sinks back into the magma.");
-                monster_die(mortar, KILL_NON_ACTOR, true);
+                monster_die(mortar, KILL_NON_ACTOR, NON_MONSTER, true);
                 return;
             }
 
@@ -1162,18 +1163,21 @@ static void _handle_hellfire_mortar(monster& mortar)
             // die.
             if (env.grid(new_pos) != DNGN_LAVA || actor_at(new_pos))
             {
-                const string reason = actor_at(new_pos)
-                                        ? actor_at(new_pos)->name(DESC_THE).c_str()
-                                        : article_a(feat_type_name(env.grid(new_pos)));
-
                 if (you.can_see(mortar))
                 {
-                    mprf("%s collides with %s and sinks back into the magma.",
-                         mortar.name(DESC_THE).c_str(),
-                         reason.c_str());
+                    string barrier, collides = " collides with ", _and = " and";
+                    if (actor_at(new_pos))
+                        barrier = actor_at(new_pos)->name(DESC_THE);
+                    else if (cell_is_solid(new_pos))
+                        barrier = article_a(feat_type_name(env.grid(new_pos)));
+                    else
+                        collides = _and = "";
+
+                    mpr(mortar.name(DESC_THE) + collides + barrier + _and +
+                        " sinks back into the magma.");
                 }
 
-                monster_die(mortar, KILL_NON_ACTOR, true);
+                monster_die(mortar, KILL_NON_ACTOR, NON_MONSTER, true);
                 return;
             }
 
@@ -2082,6 +2086,13 @@ void handle_monster_move(monster* mons)
 
     _monster_regenerate(mons);
 
+    if (mons->has_ench(ENCH_VEXED))
+    {
+        do_vexed_attack(*mons);
+        mons->lose_energy(EUT_ATTACK);
+        return;
+    }
+
     // Please change _slouch_damage to match!
     if (mons->cannot_act()
         || mons->type == MONS_SIXFIRHY // these move only 8 of 24 turns
@@ -2565,11 +2576,19 @@ void queue_monster_for_action(monster* mons)
 
 void clear_monster_flags()
 {
-    // Clear any summoning flags so that lower indiced
-    // monsters get their actions in the next round.
-    // Also clear one-turn deep sleep flag.
-    for (auto &mons : menv_real)
-        mons.flags &= ~MF_JUST_SUMMONED & ~MF_JUST_SLEPT;
+    // Clear any summoning flags so that lower indiced monsters get their
+    // actions in the next round. Also clear one-turn deep sleep flag.
+    // Finally, track the highest index of monster still alive, for
+    // monster_iterator optimisation purposes.
+    env.max_mon_index = 0;
+    for (int i = 0; i < MAX_MONSTERS; ++i)
+    {
+        if (env.mons[i].defined())
+        {
+            env.max_mon_index = i;
+            env.mons[i].flags &= ~MF_JUST_SUMMONED & ~MF_JUST_SLEPT;
+        }
+    }
 }
 
 /**

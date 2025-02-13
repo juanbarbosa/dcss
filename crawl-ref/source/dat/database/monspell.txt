@@ -244,6 +244,10 @@ Sheza's Dance cast
 
 @The_monster@ gestures, and weapons take to the air!
 %%%%
+Sojourning Bolt cast
+
+@The_monster@ breathes a rupture in space-time @at@ @target@.
+%%%%
 Sticks to Snakes cast
 
 @The_monster@ drops twin branches, and they both wriggle to life!
@@ -921,6 +925,22 @@ Throw Icicle shard shrike cast
 @The_monster@ spits a shard of ice @at@ @target@.
 %%%%
 # Sphinxes can't gesture or point.
+Confuse sphinx marauder cast
+
+@The_monster@ roars a[n obscure| perplexing] riddle with a strange tongue.
+%%%%
+Vex sphinx marauder cast
+
+@The_monster@ screeches a[n impossible| nonsensical| cliché] riddle in a mystic tongue.
+%%%%
+Smiting guardian sphinx cast
+
+@The_monster@ mutters an ancient curse @at@ @target@.
+%%%%
+Paralysis guardian sphinx cast
+
+@The_monster@ whispers a [stupefying|staggering] mystic riddle.
+%%%%
 sphinx cast
 
 @The_monster@ mumbles some strange words.

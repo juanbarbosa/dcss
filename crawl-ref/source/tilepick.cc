@@ -98,16 +98,10 @@ tileidx_t tileidx_trap(trap_type type)
     switch (type)
     {
 #if TAG_MAJOR_VERSION == 34
-    case TRAP_ARROW:
-        return TILE_DNGN_TRAP_ARROW;
     case TRAP_SPEAR:
         return TILE_DNGN_TRAP_SPEAR;
-    case TRAP_BLADE:
-        return TILE_DNGN_TRAP_BLADE;
     case TRAP_BOLT:
         return TILE_DNGN_TRAP_BOLT;
-    case TRAP_DART:
-        return TILE_DNGN_TRAP_DART;
 #endif
     case TRAP_DISPERSAL:
         return TILE_DNGN_TRAP_DISPERSAL;
@@ -115,6 +109,14 @@ tileidx_t tileidx_trap(trap_type type)
         return TILE_DNGN_TRAP_TELEPORT;
     case TRAP_TELEPORT_PERMANENT:
         return TILE_DNGN_TRAP_TELEPORT_PERMANENT;
+    case TRAP_TYRANT:
+        return TILE_DNGN_TRAP_TYRANT;
+    case TRAP_ARCHMAGE:
+        return TILE_DNGN_TRAP_ARCHMAGE;
+    case TRAP_HARLEQUIN:
+        return TILE_DNGN_TRAP_HARLEQUIN;
+    case TRAP_DEVOURER:
+        return TILE_DNGN_TRAP_DEVOURER;
     case TRAP_ALARM:
         return TILE_DNGN_TRAP_ALARM;
     case TRAP_NET:
@@ -256,15 +258,9 @@ tileidx_t tileidx_feature_base(dungeon_feature_type feat)
         return TILE_DNGN_BROKEN_CLEAR_DOOR;
 #if TAG_MAJOR_VERSION == 34
     case DNGN_TRAP_MECHANICAL:
-        return TILE_DNGN_TRAP_ARROW;
-    case DNGN_TRAP_ARROW:
-        return TILE_DNGN_TRAP_ARROW;
+        return TILE_DNGN_TRAP_BOLT;
     case DNGN_TRAP_SPEAR:
         return TILE_DNGN_TRAP_SPEAR;
-    case DNGN_TRAP_BLADE:
-        return TILE_DNGN_TRAP_BLADE;
-    case DNGN_TRAP_DART:
-        return TILE_DNGN_TRAP_DART;
     case DNGN_TRAP_BOLT:
         return TILE_DNGN_TRAP_BOLT;
 #endif
@@ -278,6 +274,14 @@ tileidx_t tileidx_feature_base(dungeon_feature_type feat)
         return TILE_DNGN_TRAP_TELEPORT;
     case DNGN_TRAP_TELEPORT_PERMANENT:
         return TILE_DNGN_TRAP_TELEPORT_PERMANENT;
+    case DNGN_TRAP_TYRANT:
+        return TILE_DNGN_TRAP_TYRANT;
+    case DNGN_TRAP_ARCHMAGE:
+        return TILE_DNGN_TRAP_ARCHMAGE;
+    case DNGN_TRAP_HARLEQUIN:
+        return TILE_DNGN_TRAP_HARLEQUIN;
+    case DNGN_TRAP_DEVOURER:
+        return TILE_DNGN_TRAP_DEVOURER;
     case DNGN_TRAP_ALARM:
         return TILE_DNGN_TRAP_ALARM;
     case DNGN_TRAP_ZOT:
@@ -1975,6 +1979,16 @@ static tileidx_t _tileidx_monster_no_props(const monster_info& mon)
                 return TILEP_MONS_EDMUND_WEAPONLESS;
         }
 
+        case MONS_PIKEL:
+        {
+            // For if Pikel loses his whip
+            const item_def * const weapon = mon.inv[MSLOT_WEAPON].get();
+            if (weapon && weapon->is_type(OBJ_WEAPONS, WPN_WHIP))
+                return TILEP_MONS_PIKEL;
+            else
+                return TILEP_MONS_PIKEL_WHIPLESS;
+        }
+
         case MONS_ERICA:
         {
             // For if Erica loses her flaming scimitar
@@ -2229,9 +2243,12 @@ tileidx_t tileidx_monster(const monster_info& mons)
         // "sleeping"?
         ch |= TILE_FLAG_STAB;
     }
-    // Should petrify show the '?' symbol?
-    else if (mons.is(MB_DISTRACTED) && !mons.is(MB_PETRIFYING)
-            || mons.attitude == ATT_FRIENDLY && mons.is(MB_CONFUSED))
+    // Deliberately not checking MB_MAYBE_STABBABLE, since we want to hide the
+    // question mark for many other scenarions that have their own unambiguous
+    // status icon.
+    else if ((mons.is(MB_DISTRACTED) || mons.is(MB_UNAWARE) || mons.is(MB_WANDERING)
+             || mons.is(MB_CANT_SEE_YOU))
+              && !mons.is(MB_CONFUSED) && !mons.is(MB_BLIND))
     {
         ch |= TILE_FLAG_MAY_STAB;
     }
@@ -2295,6 +2312,7 @@ tileidx_t tileidx_monster(const monster_info& mons)
 #endif
 
 static const map<monster_info_flags, tileidx_t> monster_status_icons = {
+    { MB_CONFUSED, TILEI_CONFUSED },
     { MB_BURNING, TILEI_STICKY_FLAME },
     { MB_INNER_FLAME, TILEI_INNER_FLAME },
     { MB_BERSERK, TILEI_BERSERK },
@@ -2356,11 +2374,13 @@ static const map<monster_info_flags, tileidx_t> monster_status_icons = {
     { MB_SHADOWLESS, TILEI_SHADOWLESS },
     { MB_LOWERED_WL, TILEI_WEAK_WILLED },
     { MB_SIGN_OF_RUIN, TILEI_SIGN_OF_RUIN },
-    { MB_DOUBLED_VIGOUR, TILEI_DOUBLED_VIGOUR },
+    { MB_DOUBLED_HEALTH, TILEI_DOUBLED_HEALTH },
     { MB_KINETIC_GRAPNEL, TILEI_KINETIC_GRAPNEL },
     { MB_TEMPERED, TILEI_TEMPERED },
     { MB_HATCHING, TILEI_HEART },
     { MB_BLINKITIS, TILEI_UNSTABLE },
+    { MB_CHAOS_LACE, TILEI_LACED_WITH_CHAOS },
+    { MB_VEXED, TILEI_VEXED },
 };
 
 set<tileidx_t> status_icons_for(const monster_info &mons)
@@ -3045,6 +3065,9 @@ static tileidx_t _tileidx_misc(const item_def &item)
 
     case MISC_QUAD_DAMAGE:
         return TILE_MISC_QUAD_DAMAGE;
+
+    case MISC_SHOP_VOUCHER:
+        return TILE_MISC_SHOP_VOUCHER;
     }
 
     return TILE_ERROR;
@@ -3448,11 +3471,12 @@ tileidx_t tileidx_cloud(const cloud_info &cl)
 }
 
 #ifdef USE_TILE
-tileidx_t vary_bolt_tile(tileidx_t tile, const coord_def& origin, const coord_def& target)
+tileidx_t vary_bolt_tile(tileidx_t tile, const coord_def& origin,
+                         const coord_def& target, const coord_def& pos)
 {
     const coord_def diff = target - origin;
     const int dir = _tile_bolt_dir(diff.x, diff.y);
-    const int dist = diff.rdist();
+    const int dist = (pos - origin).rdist();
 
     return vary_bolt_tile(tile, dir, dist);
 }
@@ -3485,18 +3509,25 @@ tileidx_t vary_bolt_tile(tileidx_t tile, int dir, int dist)
     case TILE_BOLT_MAGIC_DART:
     case TILE_BOLT_SANDBLAST:
     case TILE_BOLT_STING:
+    case TILE_BOLT_MEPHITIC_FLASK:
         return tile + (dist - 1) % tile_main_count(tile);
 
     case TILE_BOLT_FLAME:
     case TILE_BOLT_MAGMA:
     case TILE_BOLT_ICEBLAST:
+    case TILE_BOLT_ALEMBIC_POTION:
+    case TILE_BOLT_WEAK_AIR:
+    case TILE_BOLT_MEDIUM_AIR:
+    case TILE_BOLT_STRONG_AIR:
     case TILE_BOLT_IRRADIATE:
+    case TILE_BOLT_POTION_PETITION:
     case TILE_BOLT_SHADOW_BLAST:
     case TILE_BOLT_HAEMOCLASM:
     case TILE_BOLT_GHOSTLY_FIREBALL:
     case TILE_BOLT_BOMBLET_BLAST:
     case TILE_BOLT_MANIFOLD_ASSAULT:
     case TILE_BOLT_PARAGON_TEMPEST:
+    case TILE_BOLT_CHAOS_BUFF:
         return tile + ui_random(tile_main_count(tile));
 
     case TILE_MI_BOOMERANG0:
@@ -4701,8 +4732,8 @@ string tile_debug_string(tileidx_t fg, tileidx_t bg, char prefix)
     }
 
     string tile_string = make_stringf(
-        "%cFG: %4" PRIu64" | 0x%8" PRIx64" (%s)\n"
-        "%cBG: %4" PRIu64" | 0x%8" PRIx64" (%s)\n",
+        "%cFG: %4" PRIu64" | 0x%8llu (%s)\n"
+        "%cBG: %4" PRIu64" | 0x%8llu (%s)\n",
         prefix,
         fg_idx,
         fg & ~TILE_FLAG_MASK,

@@ -75,7 +75,7 @@ static const vector<monster_info_flag_name> monster_info_flag_names = {
     { MB_CLOUD_RING_MIASMA, "clouds", "surrounded by foul miasma", "clouds" },
     { MB_FIRE_CHAMPION, "flame-wreathed", "flame-wreathed", "flame-wreathed"},
     { MB_SILENCE_IMMUNE, "unsilenced", "unaffected by silence", "unsilenced" },
-    { MB_DOUBLED_VIGOUR, "doubled vigour", "doubled in vigour", "doubled vigour"},
+    { MB_DOUBLED_HEALTH, "doubled health", "doubled in health", "doubled health"},
     // Vulnerabilities
     { MB_POSSESSABLE, "soul-gripped", "soul-gripped", "soul-gripped"},
     { MB_CAUGHT, "caught", "entangled in a net", "caught"},
@@ -87,7 +87,7 @@ static const vector<monster_info_flag_name> monster_info_flag_names = {
     { MB_SLEEPING, "asleep", "asleep", "asleep"},
     { MB_UNAWARE, "unaware", "unaware", "unaware"},
     { MB_BLIND, "blind", "blind", "blind"},
-    { MB_DISTRACTED_ONLY, "distracted", "not watching you", "distracted"},
+    { MB_DISTRACTED, "distracted", "not watching you", "distracted"},
     { MB_CANT_SEE_YOU, "unable to see you", "unable to see you", "unable to see you"},
     { MB_INFESTATION, "infested", "infested", "infested"},
     // Debuffs
@@ -155,4 +155,6 @@ static const vector<monster_info_flag_name> monster_info_flag_names = {
     { MB_KINETIC_GRAPNEL, "grapneled", "grapneled", "grapneled"},
     { MB_TEMPERED, "tempered", "tempered", "tempered"},
     { MB_BLINKITIS, "untethered", "untethered in space", "untethered"},
+    { MB_CHAOS_LACE, "chaos-laced", "interlaced with chaos", "chaos-laced"},
+    { MB_VEXED, "vexed", "lashing out in frustration", "vexed"},
 };

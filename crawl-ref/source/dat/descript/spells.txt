@@ -1210,9 +1210,9 @@ travelled.
 %%%%
 Mephitic Cloud spell
 
-Conjures up a short-lived cloud of noxious fumes, which may cause confusion in
-any creature not resistant to poison. Tougher, more experienced creatures are
-less likely to be affected.
+Conjures a fragile flask that explodes into short-lived clouds of noxious fumes.
+These clouds may cause confusion in any creature not resistant to poison.
+Tougher, more experienced creatures are less likely to be affected.
 %%%%
 Mesmerise spell
 
@@ -1256,8 +1256,8 @@ Heals a small amount of damage to the caster's body.
 Monstrous Menagerie spell
 
 Summons a powerful exotic creature to the caster's aid: a manticore, a lindwurm,
-or, at high power, even a sphinx. Casting the spell at higher power also
-increases the strength of the beasts themselves.
+or, at high power, even a guardian sphinx. Casting the spell at higher power
+also increases the strength of the beasts themselves.
 %%%%
 Mercury Arrow spell
 
@@ -1759,6 +1759,13 @@ Smiting spell
 
 Smites any targeted enemy within sight, with no direct line of fire required.
 %%%%
+Sojourning Bolt spell
+
+Breathes a penetrating and unstable bijection burst. If it hits, it may teleport
+victims after a short delay. For particularly interesting morsels of adventurers
+such as yourself, this teleport will translocate those victims towards the
+caster's allies and bring the caster along for the ride, if possible.
+%%%%
 Soul Splinter spell
 
 Attempts to force a tiny fragment of a living, holy, or demonic being's soul to
@@ -2022,7 +2029,7 @@ Summon Seismosaurus Egg spell
 
 Summons the egg of a brutish lizard, just on the verge of hatching. So long as
 there are foes nearby and the caster remains adjacent to the egg, it will hatch
-several turns after being summoned to wreck havoc upon its summoner's foes.
+several turns after being summoned to wreak havoc upon its summoner's foes.
 
 Even as a juvenile, a seismosaurus is a force to be reckoned with. It is nearly
 as hardy as a mountain, and its footfalls are capable of creating violent
@@ -2066,9 +2073,9 @@ effect ends, the caster's movements will be sluggish for a time.
 %%%%
 Symbol of Torment spell
 
-Calls on the powers of darkness to cause agonising injury to any living thing
-in the caster's vicinity, cutting their health in half. This damage is
-never directly lethal.
+Calls on the powers of darkness to cause agonising injury to any living or
+holy thing in the caster's vicinity, cutting their health in half (partially
+resisted by negative energy resistance). This damage is never directly lethal.
 %%%%
 Teleport Other spell
 
@@ -2107,8 +2114,8 @@ Throw Klown Pie spell
 
 Throws a harmful yet strangely delicious pie that can inflict its victim with a
 number of irresistible and debilitating temporary effects. These include
-inducing vertigo, silence, fire vulnerability, stat drain, fragility, blindness,
-or an aversion to drinking potions.
+inducing vertigo, silence, fire vulnerability, fragility, blindness, or an
+aversion to drinking potions.
 %%%%
 Thunderbolt spell
 
@@ -2165,6 +2172,12 @@ living skill, and will encircle their quarry with cold efficiency.
 Venom Bolt spell
 
 Fires a penetrating bolt of poison.
+%%%%
+Vex spell
+
+Attempts to cloud the target's mind with thoughtless frustration, forcing them
+to spend several turns doing nothing but attacking nearby spaces (whether those
+spaces are empty or even contain their allies).
 %%%%
 Virulence spell
 

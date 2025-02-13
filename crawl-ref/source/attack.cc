@@ -703,11 +703,12 @@ int attack::inflict_damage(int dam, beam_type flavour, bool clean)
         flavour = special_damage_flavour;
     // Auxes temporarily clear damage_brand so we don't need to check
     if (damage_brand == SPWPN_REAPING
-        || damage_brand == SPWPN_CHAOS && one_chance_in(100))
+        || damage_brand == SPWPN_CHAOS && one_chance_in(100)
+        || attacker->is_player() && you.unrand_equipped(UNRAND_SKULL_OF_ZONGULDROK))
     {
         defender->props[REAPING_DAMAGE_KEY].get_int() += dam;
         // With two reapers of different friendliness, the most recent one
-        // gets the zombie. Too rare a case to care any more.
+        // gets the spectral.
         defender->props[REAPER_KEY].get_int() = attacker->mid;
     }
     return defender->hurt(responsible, dam, flavour, kill_type,
@@ -1505,15 +1506,16 @@ int attack::player_stab(int damage)
  */
 void attack::player_stab_check()
 {
-    // XXX: move into find_stab_type?
-    if (you.duration[DUR_CLUMSY] || you.confused())
+    // Stabbing monsters is unchivalric, and disabled under TSO!
+    // (And also requires more finesse than just stumbling into a monster.)
+    if (you.confused() || have_passive(passive_t::no_stabbing))
     {
         stab_attempt = false;
         stab_bonus = 0;
         return;
     }
 
-    const stab_type orig_st = find_stab_type(&you, *defender);
+    const stab_type orig_st = find_player_stab_type(*defender->as_monster());
     stab_type st = orig_st;
     // Find stab type is also used for displaying information about monsters,
     // so upgrade the stab type for !stab and the Spriggan's Knife here
@@ -1593,7 +1595,7 @@ void attack::maybe_trigger_fugue_wail(const coord_def pos)
 
 void attack::maybe_trigger_autodazzler()
 {
-    if (defender->is_player() && you.wearing_ego(EQ_GIZMO, SPGIZMO_AUTODAZZLE)
+    if (defender->is_player() && you.wearing_ego(OBJ_GIZMOS, SPGIZMO_AUTODAZZLE)
         && one_chance_in(20))
     {
         bolt proj;

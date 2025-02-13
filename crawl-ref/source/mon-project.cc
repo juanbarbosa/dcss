@@ -54,7 +54,7 @@ spret cast_iood(actor *caster, int pow, bolt *beam, float vx, float vy,
                 (is_player) ? BEH_FRIENDLY :
                     ((monster*)caster)->friendly() ? BEH_FRIENDLY : BEH_HOSTILE,
                 coord_def(),
-                mtarg).set_summoned(caster, SPELL_IOOD), true, true);
+                mtarg).set_summoned(caster, SPELL_IOOD, 0, false, false), true, true);
     if (!mon)
     {
         mprf(MSGCH_ERROR, "Failed to spawn projectile.");
@@ -494,7 +494,7 @@ bool iood_act(monster& mon, bool no_trail)
         }
         mon.props[IOOD_TPOS].get_short() = 256 * target.x + target.y;
 
-        if (!_in_front(vx, vy, dx, dy, 0.3)) // ~17 degrees
+        if (!_in_front(vx, vy, dx, dy, 0.3f)) // ~17 degrees
         {
             float ax, ay;
             if (dy*vx < dx*vy)

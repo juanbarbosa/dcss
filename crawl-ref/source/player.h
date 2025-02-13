@@ -19,7 +19,6 @@
 #include "caction-type.h"
 #include "daction-type.h"
 #include "duration-type.h"
-#include "equipment-type.h"
 #include "flush-reason-type.h"
 #include "game-chapter.h"
 #include "kill-method-type.h"
@@ -28,6 +27,7 @@
 #include "mon-holy-type.h"
 #include "mutation-type.h"
 #include "place-info.h"
+#include "player-equip.h"
 #include "quiver.h"
 #include "skill-menu-state.h"
 #include "species.h"
@@ -46,8 +46,7 @@
 #define FORCE_MAPPABLE_KEY "force_mappable"
 #define TEMP_WATERWALK_KEY "temp_waterwalk"
 #define EMERGENCY_FLIGHT_KEY "emergency_flight"
-#define PARALYSED_BY_KEY "paralysed_by"
-#define PETRIFIED_BY_KEY "petrified_by"
+#define DISABLED_BY_KEY "disabled_by"
 #define FROZEN_RAMPARTS_KEY "frozen_ramparts_position"
 #define DREAMSHARD_KEY "dreamshard"
 #define DESCENT_DEBT_KEY "descent_debt"
@@ -153,7 +152,6 @@ public:
     int max_magic_points;
     int mp_max_adj;             // max MP loss (ability costs, tutorial bonus)
 
-    FixedVector<int8_t, NUM_STATS> stat_loss;
     FixedVector<int8_t, NUM_STATS> base_stats;
 
     uint8_t max_level;
@@ -166,14 +164,8 @@ public:
     int gold;
     int zigs_completed, zig_max;
 
-    FixedVector<int8_t, NUM_EQUIP> equip;
-    FixedBitVector<NUM_EQUIP> melded;
-    // Whether these are unrands that we should run the _*_world_reacts func for
-    FixedBitVector<NUM_EQUIP> unrand_reacts;
-    // True if the slot has an item that activates when worn with max hp (regen
-    // items, acrobat amulet) and max hp has been reached while wearing it;
-    // false otherwise.
-    FixedBitVector<NUM_EQUIP> activated;
+    // Full set of infomation on which inventory items are equipped where.
+    player_equip_set equipment;
 
     FixedArray<int, NUM_OBJECT_CLASSES, MAX_SUBTYPES> force_autopickup;
 
@@ -255,7 +247,6 @@ public:
     FixedVector<int, NUM_GODS> exp_docked_total; // XP-based wrath
 
     FixedArray<uint32_t, 6, MAX_SUBTYPES> item_description;
-    set<misc_item_type>                generated_misc;
     FixedVector<unique_item_status_type, MAX_UNRANDARTS> unique_items;
     uint8_t                            octopus_king_rings;
     unique_creature_list unique_creatures;
@@ -509,14 +500,10 @@ public:
     void set_level_visited(const level_id &level);
     bool level_visited(const level_id &level);
 
-    int stat(stat_type stat, bool nonneg = true) const;
+    int stat(stat_type stat, bool nonneg = true, bool innate_only = false) const;
     int strength(bool nonneg = true) const;
     int intel(bool nonneg = true) const;
     int dex(bool nonneg = true) const;
-    int max_stat(stat_type stat, bool base = false) const;
-    int max_strength() const;
-    int max_intel() const;
-    int max_dex() const;
 
     bool in_water() const;
     bool in_liquid() const;
@@ -583,9 +570,6 @@ public:
 
     string shout_verb(bool directed = false) const;
     int shout_volume() const;
-
-    item_def *slot_item(equipment_type eq, bool include_melded=false) const
-        override;
 
     int base_ac_from(const item_def &armour, int scale = 1) const;
 
@@ -671,31 +655,22 @@ public:
 
     int       how_mutated(bool innate=false, bool levels=false, bool temp=true) const;
 
-    int wearing(equipment_type slot, int sub_type) const
-        override;
-    int wearing_ego(equipment_type slot, int type) const
-        override;
+    int wearing(object_class_type obj_type, int sub_type,
+                bool count_plus = 0, bool check_attuned = false) const override;
+    int wearing_ego(object_class_type obj_type, int ego) const override;
     int scan_artefacts(artefact_prop_type which_property,
                        vector<const item_def *> *matches = nullptr) const override;
+    bool unrand_equipped(int unrand_index, bool include_melded = false) const override;
 
     int infusion_amount() const;
 
     item_def *weapon(int which_attack = -1) const override;
+    item_def *body_armour() const override;
     item_def *shield() const override;
     item_def *offhand_weapon() const override;
 
     hands_reqd_type hands_reqd(const item_def &item,
                                bool base = false) const override;
-
-    bool      can_wield(const item_def &item,
-                        bool ignore_curse = false,
-                        bool ignore_brand = false,
-                        bool ignore_shield = false,
-                        bool ignore_transform = false) const override;
-    bool      could_wield(const item_def &item,
-                          bool ignore_brand = false,
-                          bool ignore_transform = false,
-                          bool quiet = true) const override;
 
     bool can_wear_barding(bool temp = false) const;
 
@@ -735,10 +710,9 @@ public:
     void backlight();
     void banish(const actor* /*agent*/, const string &who = "", const int power = 0,
                 bool force = false) override;
-    void blink() override;
+    void blink(bool ignore_stasis = false) override;
     void teleport(bool right_now = false,
                   bool wizard_tele = false) override;
-    void drain_stat(stat_type stat, int amount) override;
 
     void expose_to_element(beam_type element, int strength = 0,
                            bool slow_cold_blood = true) override;
@@ -749,6 +723,8 @@ public:
     void paralyse(const actor *, int str, string source = "") override;
     void petrify(const actor *, bool force = false) override;
     bool fully_petrify(bool quiet = false) override;
+    bool vex(const actor*, int dur, string source = "") override;
+    void give_stun_immunity(int duration);
     void slow_down(actor *, int str) override;
     void confuse(actor *, int strength) override;
     void weaken(const actor *attacker, int pow) override;
@@ -834,12 +810,12 @@ public:
     bool liquefied_ground() const override;
     bool incapacitated() const override
     {
-        return actor::incapacitated() || duration[DUR_CLUMSY];
+        return actor::incapacitated();
     }
     bool immune_to_hex(const spell_type hex) const;
 
     bool asleep() const override;
-    void put_to_sleep(actor *, int power = 0, bool hibernate = false) override;
+    void put_to_sleep(actor* source, int power = 0, bool hibernate = false) override;
     void awaken();
     void check_awaken(int disturbance) override;
     int beam_resists(bolt &beam, int hurted, bool doEffects, string source)
@@ -964,13 +940,6 @@ public:
     int armour_class_scaled(int scale) const;
 
     int ac_changes_from_mutations() const;
-    vector<const item_def *> get_armour_items() const;
-    vector<const item_def *> get_armour_items_one_sub(const item_def& sub) const;
-    vector<const item_def *> get_armour_items_one_removal(const item_def& sub) const;
-    int base_ac_with_specific_items(int scale,
-                                    vector<const item_def *> armour_items) const;
-    int armour_class_with_specific_items(int scale,
-                                vector<const item_def *> items) const;
 
 protected:
     void _removed_beholder(bool quiet = false);
@@ -978,7 +947,6 @@ protected:
 
     void _removed_fearmonger(bool quiet = false);
     bool _possible_fearmonger(const monster* mon) const;
-
 };
 
 class monster;
@@ -1026,7 +994,6 @@ static inline bool player_in_branch(int branch)
 }
 
 bool berserk_check_wielded_weapon();
-bool player_equip_unrand(int unrand_index, bool include_melded = false);
 bool player_can_hear(const coord_def& p, int hear_distance = 999);
 
 bool player_is_shapechanged();
@@ -1124,7 +1091,7 @@ monster_type player_mons(bool transform = true);
 void update_player_symbol();
 void update_vision_range();
 
-maybe_bool you_can_wear(equipment_type eq, bool temp = false);
+maybe_bool you_can_wear(equipment_slot slot, bool include_form = false);
 bool player_can_use_armour();
 
 bool player_has_hair(bool temp = true, bool include_mutations = true);
@@ -1234,7 +1201,6 @@ bool is_feat_dangerous(dungeon_feature_type feat, bool permanently = false,
                        bool ignore_flight = false);
 void enable_emergency_flight();
 
-int count_worn_ego(int which_ego);
 bool need_expiration_warning(duration_type dur, dungeon_feature_type feat);
 bool need_expiration_warning(dungeon_feature_type feat);
 bool need_expiration_warning(duration_type dur, coord_def p = you.pos());

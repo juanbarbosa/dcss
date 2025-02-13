@@ -222,6 +222,7 @@ void UIMenu::update_items()
     _invalidate_sizereq();
 
     item_info.resize(m_menu->items.size());
+    do_layout(m_region.width, m_num_columns, true);
     for (unsigned int i = 0; i < m_menu->items.size(); ++i)
         update_item(i);
 
@@ -2545,8 +2546,11 @@ bool MonsterMenuEntry::get_tiles(vector<tile_def>& tileset) const
         tileset.emplace_back(TILEI_FLEEING);
     else if (m->is(MB_STABBABLE))
         tileset.emplace_back(TILEI_STAB_BRAND);
-    else if (m->is(MB_DISTRACTED))
-        tileset.emplace_back(TILEI_MAY_STAB_BRAND);
+    else if (m->is(MB_DISTRACTED) || m->is(MB_UNAWARE) || m->is(MB_WANDERING)
+             || m->is(MB_CANT_SEE_YOU))
+    {
+        tileset.emplace_back(TILEI_UNAWARE);
+    }
 
     return true;
 }

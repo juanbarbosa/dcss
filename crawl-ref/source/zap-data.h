@@ -538,6 +538,8 @@ static const zap_info zap_data[] =
     DCHAR_FIRED_ZAP,
     false,
     true,
+    TILE_BOLT_MEPHITIC_FLASK,
+    TILE_BOLT_DEFAULT_GREEN,
 },
 
 {
@@ -574,6 +576,7 @@ static const zap_info zap_data[] =
 },
 
 _mon_hex_zap(ZAP_PARALYSE, BEAM_PARALYSIS),
+_mon_hex_zap(ZAP_VEX, BEAM_VEX),
 
 {
     ZAP_BOLT_OF_FIRE,
@@ -1304,7 +1307,7 @@ _mon_hex_zap(ZAP_BANISHMENT, BEAM_BANISH, 150),
     false,
 },
 
-// player spellpower is capped to 50 in spl-zap.cc:spell_zap_power.
+// player spellpower is capped to 50 in spl-zap.cc:spell_zap_power_cap.
 _mon_hex_zap(ZAP_HIBERNATION, BEAM_HIBERNATION),
 
 {
@@ -2027,6 +2030,23 @@ _mon_hex_zap(ZAP_VITRIFY, BEAM_VITRIFY),
 },
 
 {
+    ZAP_SOJOURNING,
+    "destabilizing rupture",
+    200,
+    nullptr,
+    nullptr,
+    new dicedef_calculator<3, 7, 1, 12>,
+    new tohit_calculator<40>,
+    LIGHTMAGENTA,
+    false,
+    BEAM_MMISSILE,
+    DCHAR_FIRED_ZAP,
+    true,
+    false,
+    TILE_BOLT_WARP_SPACE,
+},
+
+{
     ZAP_CAUSTIC_BREATH,
     "acid spray",
     200,
@@ -2663,6 +2683,22 @@ _mon_hex_zap(ZAP_VITRIFY, BEAM_VITRIFY),
     false,
     false,
     TILE_BOLT_STING,
+},
+
+{
+    ZAP_FREEZE,
+    "freeze",
+    25,
+    new dicedef_calculator<1, 3, 3, 10>,
+    new tohit_calculator<AUTOMATIC_HIT>,
+    new dicedef_calculator<1, 3, 3, 10>,
+    new tohit_calculator<AUTOMATIC_HIT>,
+    WHITE,
+    false,
+    BEAM_COLD,
+    NUM_DCHAR_TYPES,
+    false,
+    false,
 },
 
 };

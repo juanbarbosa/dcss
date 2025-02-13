@@ -327,20 +327,26 @@ int mon_beat_sh_pct(int bypass, int scaled_sh)
  */
 static bool _autoswitch_to_melee()
 {
+    // It's not a good idea to quietly replace an attack action with one that
+    // takes 5 times as long. Even prompting would be better.
+    if (you.has_mutation(MUT_SLOW_WIELD))
+        return false;
+
+    item_def* weapon = you.weapon();
     bool penance;
-    if (!you.weapon()
+    if (!weapon
         // don't autoswitch from a weapon that needs a warning
-        || is_melee_weapon(*you.weapon())
-            && !needs_handle_warning(*you.weapon(), OPER_ATTACK, penance))
+        || is_melee_weapon(*weapon)
+            && !needs_handle_warning(*weapon, OPER_ATTACK, penance))
     {
         return false;
     }
 
-    // don't autoswitch if a or b is not selected
+    // Only try autoswapping if weapon is in slot a or b
     int item_slot;
-    if (you.equip[EQ_WEAPON] == letter_to_index('a'))
+    if (weapon->link == letter_to_index('a'))
         item_slot = letter_to_index('b');
-    else if (you.equip[EQ_WEAPON] == letter_to_index('b'))
+    else if (weapon->link == letter_to_index('b'))
         item_slot = letter_to_index('a');
     else
         return false;
@@ -576,87 +582,72 @@ bool fight_melee(actor *attacker, actor *defender, bool *did_hit, bool simu)
 }
 
 /**
- * If the given attacker attacks the given defender right now, what kind of
- * extra-damage "stab" attack can the attacker perform, if any?
+ * What is the best stab type that could be applied against a given monster
+ * right now? (Ignoring the player's own potential incapacitation.)
  *
- * @param attacker  The attacker; may be null.
- * @param defender  The defender.
- * @param actual    True if we're actually committing to a stab, false if we're
- *                  just checking for display purposes.
- * @return          The best (most damaging) kind of stab available to the
- *                  attacker against this defender, or STAB_NO_STAB.
+ * Note that while all of these stab types map to only two tiers of mechnical
+ * power, the specific type is still noted in the action count section of
+ * character dumps.
+ *
+ * @param victim    The monster being sized up by the player.
+ * @return          The best (most damaging) kind of stab available against this
+ *                  monser, or STAB_NO_STAB if none is available.
  */
-stab_type find_stab_type(const actor *attacker,
-                         const actor &defender,
-                         bool actual)
+stab_type find_player_stab_type(const monster &victim)
 {
-    const monster* def = defender.as_monster();
-
-    // Stabbing monsters is unchivalric, and disabled under TSO!
-    // When just checking for display purposes, still indicate when monsters
-    // are sleeping/paralysed etc.
-    if (actual && attacker && attacker->is_player()
-        && def && have_passive(passive_t::no_stabbing))
-    {
-        return STAB_NO_STAB;
-    }
-
     // No stabbing monsters that cannot fight (e.g. plants) or monsters
     // the attacker can't see (either due to invisibility or being behind
     // opaque clouds).
-    if (def && def->is_firewood())
+    if (victim.is_firewood())
         return STAB_NO_STAB;
 
-    if (attacker && !attacker->can_see(defender))
-        return STAB_NO_STAB;
-
-    // Can't stab these
-    if (def && def->type == MONS_SPECTRAL_WEAPON)
+    if (!you.can_see(victim))
         return STAB_NO_STAB;
 
     // sleeping
-    if (defender.asleep())
+    if (victim.asleep())
         return STAB_SLEEPING;
 
     // paralysed
-    if (defender.paralysed())
+    if (victim.paralysed())
         return STAB_PARALYSED;
 
     // petrified
-    if (defender.petrified())
+    if (victim.petrified())
         return STAB_PETRIFIED;
 
     // petrifying
-    if (def && def->petrifying())
+    if (victim.petrifying())
         return STAB_PETRIFYING;
 
     // held in a net
-    if (def && def->caught())
+    if (victim.caught())
         return STAB_HELD_IN_NET;
 
     // invisible
-    if (attacker && !attacker->visible_to(&defender))
-        return STAB_INVISIBLE;
+    if (!you.visible_to(&victim))
+    {
+        if (victim.has_ench(ENCH_BLIND))
+            return STAB_BLIND;
+        else
+            return STAB_INVISIBLE;
+    }
 
     // fleeing
-    if (def && mons_is_fleeing(*def))
+    if (mons_is_fleeing(victim))
         return STAB_FLEEING;
 
     // allies
-    if (def && def->friendly())
+    if (victim.friendly())
         return STAB_ALLY;
 
     // confused (but not perma-confused)
-    if (def && mons_is_confused(*def, false))
+    if (mons_is_confused(victim, false))
         return STAB_CONFUSED;
 
-    // Distracted (but not batty); this only applies to players.
-    if (attacker && attacker->is_player()
-        && def && def->foe != MHITYOU
-        && def->behaviour != BEH_BATTY)
-    {
+    // Distracted
+    if (mons_looks_distracted(victim))
         return STAB_DISTRACTED;
-    }
 
     return STAB_NO_STAB;
 }
@@ -898,7 +889,7 @@ static bool _missing_weapon(const item_def *weapon, const item_def *offhand)
            && you.form != transformation::tree
            && any_of(you.inv.begin(), you.inv.end(),
                      [](item_def &it) {
-               return is_melee_weapon(it) && can_wield(&it);
+               return is_melee_weapon(it) && can_equip_item(it);
             });
 }
 
@@ -1568,8 +1559,8 @@ bool stop_summoning_prompt(resists_t resists, monclass_flags_t flags,
     if (noun.empty())
         return false;
 
-    string prompt = make_stringf("Really %s while emitting a %s?",
-                                 verb.c_str(), noun.c_str());
+    string prompt = make_stringf("Really %s while emitting %s?",
+                                 verb.c_str(), article_a(noun).c_str());
 
     if (yesno(prompt.c_str(), false, 'n'))
         return false;

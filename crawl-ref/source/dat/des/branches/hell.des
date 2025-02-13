@@ -14,6 +14,7 @@ function hell_entry_feature(e, glyph)
     e.depth_chance("D:21-", 10000)
 -- end TAG_MAJOR_VERSION
     e.kfeat(glyph .. " = enter_hell")
+    e.tile("v = dngn_metal_wall_darkgray")
 end
 
 function hell_entry_tier(e, tier)
@@ -745,7 +746,7 @@ WEIGHT: 2
 : hell_entry_tier(_G, "low")
 KMONS: S = balrug band / hell knight band / jiangshi band / \
            ancient champion band / deep troll shaman band / \
-           salamander tyrant band / wendigo band
+           salamander tyrant band / wyrmhole
 SUBST: L = l., ` = lx
 MAP
   xxxx

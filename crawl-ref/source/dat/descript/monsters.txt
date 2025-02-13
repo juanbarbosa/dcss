@@ -679,7 +679,7 @@ unnatural beauty surrounded by an aura of brilliant white light.
 apis
 
 A placid, sacred bull of Elyvilon. Its status as an exalted envoy of the Healer
-lets its very presence double the vitality and vigour of its allies.
+lets its very presence double the health of its allies.
 %%%%
 apocalypse crab
 
@@ -1567,6 +1567,12 @@ A rare and distinct member of scaly society, light and swift like a snake, yet
 also intelligent like a naga. It is said that a guardian serpent would rather
 die in battle than leave anything to an intruder.
 %%%%
+guardian sphinx
+
+A fearsome aged hybrid with a woman's head, a lion's body, and the wings of
+an eagle. It solemnly guards the temples and treasures of the Dungeon with a
+multitude of mind-clouding maledictions.
+%%%%
 halazid warlock
 
 An ancient undead sorcerer, exhumed by the living divines Sheza and Sargol and
@@ -2126,6 +2132,12 @@ oni
 A large, rowdy, and drink-loving creature. When they're not busy with their
 duties serving any number of gods, oni mostly love a good fight.
 %%%%
+oni incarcerator
+
+An infamous, dutiful retainer of Gehenna. These immense and indomitable oni
+weave their weapons through reality itself to reach and capture the innumerable
+damned souls owed to the hells upon their deaths.
+%%%%
 ophan
 
 A creature from the heavenly realms. It consists of a wheel within a wheel, and
@@ -2349,11 +2361,6 @@ maw cannot eat the food it finds, so it moans with rage and desparate hunger.
 purple draconian
 
 A muscular purple-scaled humanoid with a reptilian tail and small wings.
-%%%%
-quasit
-
-A cowardly little demon with a long, viciously pointed tail. Its sharp claws
-are engraved with cursing runes that stiffen muscles.
 %%%%
 queen bee
 
@@ -2651,8 +2658,10 @@ A skeleton compelled to unlife by the exercise of necromancy.
 %%%%
 sky beast
 
-A strange aerial creature formed of clouds and tortured flesh that sparkles
-with electricity and, every so often, slips entirely from view.
+A strange aerial creature formed of fleshy clouds and electric feathers. It
+commands the faint wind currents of the Dungeon with every strike, which will
+buffet its victims in dramatic correlation to the amount of open air around
+said prey.
 %%%%
 skyshark
 
@@ -2741,10 +2750,11 @@ spellspark servitor
 A magical construct forged around a spark of its creator's own arcane power,
 allowing it to wield some of their destructive magics directly.
 %%%%
-sphinx
+sphinx marauder
 
-A fearsome hybrid with a woman's head, a lion's body and the wings of an eagle,
-able to cloud the minds of its foes and wield fell magics.
+A wicked youthful hybrid with a woman's head, a lion's body, and the wings of
+an eagle. It gleefully wreaks havoc with both the violent turbulence of
+high winds and the frustration of bewildering magics.
 %%%%
 splinterfrost barricade
 
@@ -3212,6 +3222,14 @@ wretched star
 A conflux of unearthly light and energy, awash in unnatural colours and strange
 forms no normal being was meant to perceive. It fills all those in its presence
 with the disorder of the Abyss.
+%%%%
+wyrmhole
+
+A small and strangely serpentine fold in space and time. Scholars once
+theorised the Dungeon's easy access to manifold unholy realms is due to the
+tunneling of yet-undiscovered translocations dragons. Whether or not this is
+true, distant stars mottle this drake's endless lengths, and dimensions bend to
+its writhing whim.
 %%%%
 wyvern
 

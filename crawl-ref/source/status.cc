@@ -150,7 +150,6 @@ static void _describe_regen(status_info& inf);
 static void _describe_speed(status_info& inf);
 static void _describe_poison(status_info& inf);
 static void _describe_transform(status_info& inf);
-static void _describe_stat_zero(status_info& inf, stat_type st);
 static void _describe_terrain(status_info& inf);
 static void _describe_invisible(status_info& inf);
 static void _describe_zot(status_info& inf);
@@ -180,6 +179,28 @@ bool fill_status_info(int status, status_info& inf)
     // completing or overriding the defaults set above.
     switch (status)
     {
+    case STATUS_STAT_ZERO:
+    {
+        if (!you.attribute[ATTR_STAT_ZERO])
+            break;
+
+        vector<string> stat_str;
+        for (int i = STAT_STR; i <= STAT_DEX; ++i)
+        {
+            stat_type stat = static_cast<stat_type>(i);
+            if (you.stat(stat, false) <= 0)
+                stat_str.emplace_back(stat_desc(stat, SD_NAME));
+        }
+
+        string msg = comma_separated_line(stat_str.begin(), stat_str.end());
+
+        inf.light_text   = "Crippled";
+        inf.light_colour = LIGHTRED;
+        inf.short_text   = make_stringf("lost %s", msg.c_str());
+        inf.long_text    = make_stringf("You have no %s!", msg.c_str());
+    }
+    break;
+
     case STATUS_DRACONIAN_BREATH:
     {
         if (!species::is_draconian(you.species) || you.experience_level < 7)
@@ -253,7 +274,7 @@ bool fill_status_info(int status, status_info& inf)
         break;
 
     case DUR_BERSERK:
-        if (player_equip_unrand(UNRAND_BEAR_SPIRIT))
+        if (you.unrand_equipped(UNRAND_BEAR_SPIRIT))
             inf.light_text = "Bearserk";
         break;
 
@@ -311,17 +332,6 @@ bool fill_status_info(int status, status_info& inf)
             inf.light_text   = "Peek";
             inf.short_text   = "peeking";
             inf.long_text    = "You are peeking down the stairs.";
-        }
-        break;
-
-    case STATUS_IN_DEBT:
-        if (you.props.exists(DESCENT_DEBT_KEY))
-        {
-            inf.light_colour = RED;
-            inf.light_text = make_stringf("Debt (%d)",
-                          you.props[DESCENT_DEBT_KEY].get_int());
-            inf.short_text   = "in debt";
-            inf.long_text    = "You are in debt. Gold earned will pay it off.";
         }
         break;
 
@@ -465,16 +475,6 @@ bool fill_status_info(int status, status_info& inf)
 
     case DUR_TRANSFORMATION:
         _describe_transform(inf);
-        break;
-
-    case STATUS_STR_ZERO:
-        _describe_stat_zero(inf, STAT_STR);
-        break;
-    case STATUS_INT_ZERO:
-        _describe_stat_zero(inf, STAT_INT);
-        break;
-    case STATUS_DEX_ZERO:
-        _describe_stat_zero(inf, STAT_DEX);
         break;
 
     case STATUS_CONSTRICTED:
@@ -736,7 +736,7 @@ bool fill_status_info(int status, status_info& inf)
             inf.light_colour = LIGHTMAGENTA;
             inf.light_text = "Orb";
         }
-        else if (player_equip_unrand(UNRAND_CHARLATANS_ORB))
+        else if (you.unrand_equipped(UNRAND_CHARLATANS_ORB))
         {
             inf.light_colour = LIGHTMAGENTA;
             inf.light_text = "Orb?";
@@ -779,8 +779,7 @@ bool fill_status_info(int status, status_info& inf)
         break;
 
     case STATUS_NO_SCROLL:
-        if (you.duration[DUR_NO_SCROLLS] || you.duration[DUR_BRAINLESS]
-            || player_in_branch(BRANCH_GEHENNA))
+        if (you.duration[DUR_NO_SCROLLS] || player_in_branch(BRANCH_GEHENNA))
         {
             inf.light_colour = RED;
             inf.light_text   = "-Scroll";
@@ -875,6 +874,16 @@ bool fill_status_info(int status, status_info& inf)
         inf.light_text = "Blast" + string(max(0, (40 - you.duration[DUR_FORTRESS_BLAST_TIMER]) / 10), '.');
         inf.short_text = "fortress blast";
         inf.long_text = "Preparing a Fortress Blast.";
+        break;
+
+    case DUR_TELEPORT:
+        if (you.props.exists(SJ_TELEPORTITIS_SOURCE))
+        {
+            inf.light_text   = "!Tele!";
+            inf.light_colour = RED;
+            inf.short_text   = "teleporting to hostiles";
+            inf.long_text    = "You are about to teleport to other enemies.";
+        }
         break;
 
     default:
@@ -1137,21 +1146,6 @@ static void _describe_transform(status_info& inf)
 
     inf.light_colour = _dur_colour(GREEN, expire);
     _mark_expiring(inf, expire);
-}
-
-static const char* s0_names[NUM_STATS] = { "Collapse", "Brainless", "Clumsy", };
-
-static void _describe_stat_zero(status_info& inf, stat_type st)
-{
-    if (you.duration[stat_zero_duration(st)])
-    {
-        inf.light_colour = you.stat(st) ? LIGHTRED : RED;
-        inf.light_text   = s0_names[st];
-        inf.short_text   = make_stringf("lost %s", stat_desc(st, SD_NAME));
-        inf.long_text    = make_stringf(you.stat(st) ?
-                "You are recovering from loss of %s." : "You have no %s!",
-                stat_desc(st, SD_NAME));
-    }
 }
 
 static void _describe_terrain(status_info& inf)

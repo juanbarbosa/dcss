@@ -305,8 +305,8 @@ static const cloud_data clouds[] = {
       ETC_FIRE,                                   // colour
       { TILE_CLOUD_FLAME, CTVARY_RANDOM },        // tile
     },
-    // CLOUD_DEGENERATION,
-    { "degeneration",  nullptr,                   // terse, verbose name
+    // CLOUD_ALCOHOL,
+    { "alcoholic mist",  nullptr,                 // terse, verbose name
       ETC_DARK,                                   // colour
       { TILE_CLOUD_DEGENERATION, CTVARY_NONE },   // tile
       BEAM_NONE, {},                              // beam & damage
@@ -859,7 +859,7 @@ static bool _cloud_has_negative_side_effects(cloud_type cloud)
     case CLOUD_MEPHITIC:
     case CLOUD_MIASMA:
     case CLOUD_MUTAGENIC:
-    case CLOUD_DEGENERATION:
+    case CLOUD_ALCOHOL:
     case CLOUD_CHAOS:
     case CLOUD_PETRIFY:
     case CLOUD_ACID:
@@ -928,18 +928,18 @@ bool actor_cloud_immune(const actor &act, cloud_type type)
         case CLOUD_FOREST_FIRE:
             if (!act.is_player())
                 return act.res_fire() >= 3;
-            return player_equip_unrand(UNRAND_SALAMANDER)
+            return you.unrand_equipped(UNRAND_SALAMANDER)
 #if TAG_MAJOR_VERSION == 34
                    || you.has_mutation(MUT_FLAME_CLOUD_IMMUNITY)
 #endif
-                   || player_equip_unrand(UNRAND_FIRESTARTER)
+                   || you.unrand_equipped(UNRAND_FIRESTARTER)
                    || you.has_mutation(MUT_IGNITE_BLOOD);
         case CLOUD_HOLY:
             return act.res_holy_energy() >= 3;
         case CLOUD_COLD:
             if (!act.is_player())
                 return act.res_cold() >= 3;
-            return player_equip_unrand(UNRAND_FROSTBITE)
+            return you.unrand_equipped(UNRAND_FROSTBITE)
 #if TAG_MAJOR_VERSION == 34
                    || you.has_mutation(MUT_FREEZING_CLOUD_IMMUNITY)
 #endif
@@ -1150,11 +1150,11 @@ static bool _actor_apply_cloud_side_effects(actor *act,
         }
         return false;
 
-    case CLOUD_DEGENERATION:
-        if (player && one_chance_in(4))
+    case CLOUD_ALCOHOL:
+        if (player && (coinflip()))
         {
-            mpr("You feel yourself deteriorate.");
-            lose_stat(STAT_RANDOM, 1 + random2avg(4,2));
+            mpr("You feel dizzy.");
+            you.increase_duration(DUR_VERTIGO, random_range(7, 11), 50);
             return true;
         }
         return false;

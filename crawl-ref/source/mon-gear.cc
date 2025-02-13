@@ -683,6 +683,12 @@ int make_mons_weapon(monster_type type, int level, bool melee_only)
         } } },
         { MONS_OGRE,                    { OGRE_WEAPONS } },
         { MONS_EROLCHA,                 { OGRE_WEAPONS } },
+        { MONS_ONI_INCARCERATOR, {
+            { { WPN_GLAIVE,             3 },
+              { WPN_BARDICHE,           1 }, },
+            { 1, 1, 3 },
+            { { SPWPN_FLAMING, 1 } }
+        } },
         { MONS_ILSUIW, {
             { { WPN_TRIDENT,            1 } },
             { 1, -1, 6, 2 },
@@ -745,7 +751,7 @@ int make_mons_weapon(monster_type type, int level, bool melee_only)
         } },
         { MONS_FRAVASHI,
           // it'd be kinda weird to use trishulas considering they're from
-          // the literal opposing faith in the region.
+          // a literal opposing faith in the region.
             { { { WPN_HALBERD,       3 },
                 { WPN_GLAIVE,        6 },
                 { WPN_PARTISAN,      5 },
@@ -1866,17 +1872,24 @@ int make_mons_armour(monster_type type, int level)
         item.sub_type  = ARM_LEATHER_ARMOUR;
         break;
 
+    case MONS_ORC_HIGH_PRIEST:
+    case MONS_DEEP_ELF_FIRE_MAGE:
+    case MONS_DEEP_ELF_AIR_MAGE:
+    case MONS_DEEP_ELF_KNIGHT:
     case MONS_DEEP_ELF_ANNIHILATOR:
     case MONS_DEEP_ELF_DEATH_MAGE:
     case MONS_DEEP_ELF_DEMONOLOGIST:
-    case MONS_DEEP_ELF_HIGH_PRIEST:
-    case MONS_DEEP_ELF_KNIGHT:
-    case MONS_DEEP_ELF_AIR_MAGE:
-    case MONS_DEEP_ELF_FIRE_MAGE:
-    case MONS_DEEP_ELF_SORCERER:
     case MONS_DEEP_ELF_ELEMENTALIST:
+    case MONS_DEEP_ELF_HIGH_PRIEST:
+    case MONS_DEEP_ELF_SORCERER:
+        item.base_type = OBJ_ARMOUR;
+        item.sub_type  = random_choose_weighted(12, ARM_ROBE,
+                                                4, ARM_LEATHER_ARMOUR,
+                                                3, ARM_RING_MAIL,
+                                                1, ARM_SCALE_MAIL);
+        break;
+
     case MONS_ORC:
-    case MONS_ORC_HIGH_PRIEST:
     case MONS_ORC_PRIEST:
         if (x_chance_in_y(2, 5))
         {
@@ -1889,7 +1902,7 @@ int make_mons_armour(monster_type type, int level)
                                                     1, ARM_CHAIN_MAIL);
         }
         else
-            return NON_ITEM; // er...
+            return NON_ITEM; // don't hand out too much armour to early orcs
         break;
 
     case MONS_GNOLL_BOUDA:
@@ -2177,6 +2190,8 @@ int make_mons_armour(monster_type type, int level)
         item.sub_type  = ARM_ROBE;
         break;
 
+    case MONS_SPHINX_MARAUDER:
+    case MONS_GUARDIAN_SPHINX:
     case MONS_DRACONIAN_SHIFTER:
     case MONS_DRACONIAN_SCORCHER:
     case MONS_DRACONIAN_ANNIHILATOR:
@@ -2223,6 +2238,13 @@ int make_mons_armour(monster_type type, int level)
                                                   5, ARM_FIRE_DRAGON_ARMOUR,
                                                   5, ARM_ICE_DRAGON_ARMOUR,
                                                   5, ARM_ACID_DRAGON_ARMOUR);
+        break;
+
+    case MONS_ONI_INCARCERATOR:
+        if (coinflip())
+            level = ISPEC_GOOD_ITEM;
+        item.base_type = OBJ_ARMOUR;
+        item.sub_type  = ARM_FIRE_DRAGON_ARMOUR;
         break;
 
     default:

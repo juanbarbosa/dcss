@@ -14,6 +14,7 @@
 #include "dungeon.h"
 #include "god-companions.h" // hepliaklqana_ancestor
 #include "god-passive.h"
+#include "god-wrath.h"
 #include "libutil.h"
 #include "mapmark.h"
 #include "map-knowledge.h"
@@ -221,7 +222,7 @@ void apply_daction_to_mons(monster* mon, daction_type act, bool local,
 
             simple_monster_message(*mon, " is freed.");
             // The monster disappears.
-            monster_die(*mon, KILL_RESET, NON_MONSTER);
+            monster_die(*mon, KILL_RESET_KEEP_ITEMS, NON_MONSTER);
             break;
 
         case DACT_SLIME_NEW_ATTEMPT:
@@ -333,20 +334,7 @@ static void _apply_daction(daction_type act)
         break;
     case DACT_REMOVE_GOZAG_SHOPS:
     {
-        vector<map_marker *> markers = env.markers.get_all(MAT_FEATURE);
-        for (const auto marker : markers)
-        {
-            map_feature_marker *feat =
-                dynamic_cast<map_feature_marker *>(marker);
-            ASSERT(feat);
-            if (feat->feat == DNGN_ABANDONED_SHOP)
-            {
-                // TODO: clear shop data out?
-                env.grid(feat->pos) = DNGN_ABANDONED_SHOP;
-                view_update_at(feat->pos);
-                env.markers.remove(feat);
-            }
-        }
+        gozag_abandon_shops_on_level();
         break;
     }
     case DACT_UPGRADE_ANCESTOR:

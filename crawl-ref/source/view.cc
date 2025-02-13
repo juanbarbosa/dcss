@@ -427,8 +427,12 @@ static string _describe_monsters_from_species(const vector<details> &species)
         [] (const details &det)
         {
             string name = det.name;
-            if (mons_is_unique(det.mon->type) || mons_is_specially_named(det.mon->type))
+            if (mons_is_unique(det.mon->type)
+                || mons_is_specially_named(det.mon->type)
+                || !you.can_see(*det.mon))
+            {
                 return name;
+            }
             else if (det.count > 1 && det.genus)
             {
                 auto genus = mons_genus(det.mon->type);
@@ -921,7 +925,21 @@ string screenshot()
 
 int viewmap_flash_colour()
 {
-    return _layers & LAYERS_ALL && you.berserk() ? RED : BLACK;
+    // This only shows the fullscreen colour when we're showing all layers,
+    // and hides it for parseability's sake when toggling individual layers.
+    if ((_layers & LAYERS_ALL) != LAYERS_ALL)
+        return BLACK;
+
+    if (you.berserk())
+        return RED;
+    else if (you.paralysed())
+        return LIGHTBLUE;
+    else if (you.petrified())
+        return LIGHTGRAY;
+    else if (you.duration[DUR_VEXED])
+        return MAGENTA;
+
+    return BLACK;
 }
 
 // Updates one square of the view area. Should only be called for square
@@ -1612,12 +1630,7 @@ static void add_overlays(const coord_def& gc, screen_cell_t* cell)
            && tile_overlays[tile_overlay_i].gc == gc)
     {
         const auto &overlay = tile_overlays[tile_overlay_i];
-        if (cell->tile.num_dngn_overlay == 0
-            || cell->tile.dngn_overlay[cell->tile.num_dngn_overlay - 1]
-                                            != static_cast<int>(overlay.tile))
-        {
-            cell->tile.dngn_overlay[cell->tile.num_dngn_overlay++] = overlay.tile;
-        }
+        cell->tile.add_overlay(overlay.tile);
         tile_overlay_i++;
     }
 #endif
