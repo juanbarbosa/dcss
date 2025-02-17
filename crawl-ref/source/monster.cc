@@ -525,8 +525,11 @@ item_def *monster::get_defining_object() const
     // really guarantee these items
     if (mons_class_is_animated_weapon(type) && inv[MSLOT_WEAPON] != NON_ITEM)
         return &env.item[inv[MSLOT_WEAPON]];
-    else if (type == MONS_ARMOUR_ECHO && inv[MSLOT_ARMOUR] != NON_ITEM)
+    else if ((type == MONS_ARMOUR_ECHO || type == MONS_HAUNTED_ARMOUR)
+             && inv[MSLOT_ARMOUR] != NON_ITEM)
+    {
         return &env.item[inv[MSLOT_ARMOUR]];
+    }
 
     return nullptr;
 }
@@ -1646,6 +1649,10 @@ bool monster::pickup_armour(item_def &item, bool msg, bool force)
         }
     }
 
+    // Haunted armour can equip any aux in their main armour slot.
+    if (type == MONS_HAUNTED_ARMOUR)
+        slot = SLOT_BODY_ARMOUR;
+
     // Bardings are only wearable by the appropriate monster.
     if (slot == SLOT_UNUSED)
         return false;
@@ -2483,7 +2490,7 @@ string monster::arm_name(bool plural, bool *can_plural) const
     case MONS_LICH:
     case MONS_SKELETAL_WARRIOR:
     case MONS_ANCIENT_CHAMPION:
-    case MONS_REVENANT:
+    case MONS_REVENANT_SOULMONGER:
         adj = "bony";
         break;
 
@@ -4291,14 +4298,9 @@ int monster::hurt(const actor *agent, int amount, beam_type flavour,
         if (agent && agent->is_player()
             && mons_class_gives_xp(type)
             && (temp_attitude() == ATT_HOSTILE || has_ench(ENCH_FRENZIED))
-            && type != MONS_NAMELESS // hack - no usk piety for miscasts
-            && flavour != BEAM_SHARED_PAIN
-            && flavour != BEAM_STICKY_FLAME
-            && kill_type != KILLED_BY_POISON
-            && kill_type != KILLED_BY_CLOUD
-            && kill_type != KILLED_BY_BEOGH_SMITING)
+            && type != MONS_NAMELESS) // hack - no usk piety for miscasts
         {
-           did_hurt_conduct(DID_HURT_FOE, *this, amount);
+           did_hurt_monster(*this, amount, flavour, kill_type);
         }
 
         if (amount && !is_firewood()
@@ -4404,12 +4406,16 @@ bool monster::fully_petrify(bool quiet)
     return msg;
 }
 
-bool monster::vex(const actor *who, int duration, string /* source */)
+bool monster::vex(const actor *who, int duration, string /* source */,
+                  string special_message)
 {
     if (clarity() || has_ench(ENCH_VEXED))
         return false;
 
-    simple_monster_message(*this, " is overwhelmed by frustration!");
+    if (!special_message.empty())
+        simple_monster_message(*this, special_message.c_str());
+    else
+        simple_monster_message(*this, " is overwhelmed by frustration!");
     add_ench(mon_enchant(ENCH_VEXED, 0, who, duration * BASELINE_DELAY));
 
     return true;
@@ -5222,7 +5228,7 @@ static bool _mons_is_skeletal(int mc)
            || mc == MONS_BONE_DRAGON
            || mc == MONS_SKELETAL_WARRIOR
            || mc == MONS_ANCIENT_CHAMPION
-           || mc == MONS_REVENANT
+           || mc == MONS_REVENANT_SOULMONGER
            || mc == MONS_WEEPING_SKULL
            || mc == MONS_LAUGHING_SKULL
            || mc == MONS_CURSE_SKULL
@@ -5526,7 +5532,7 @@ bool monster::do_shaft()
     return reveal;
 }
 
-void monster::put_to_sleep(actor */*attacker*/, int /*strength*/, bool hibernate)
+void monster::put_to_sleep(actor* attacker, int duration, bool hibernate)
 {
     const bool valid_target = hibernate ? can_hibernate() : can_sleep();
     if (!valid_target)
@@ -5537,6 +5543,12 @@ void monster::put_to_sleep(actor */*attacker*/, int /*strength*/, bool hibernate
     flags |= MF_JUST_SLEPT;
     if (hibernate)
         add_ench(ENCH_SLEEP_WARY);
+
+    // Duration of 0 has no awakening protection, but also never wears off
+    // automatically, either - ie: mimicking natural monster sleep behaviour.
+    // (Used by Step From Time.)
+    if (duration > 0)
+        add_ench(mon_enchant(ENCH_DEEP_SLEEP, 0, attacker, duration));
 }
 
 void monster::weaken(const actor *attacker, int pow)
@@ -5565,11 +5577,6 @@ bool monster::strip_willpower(actor *attacker, int dur, bool quiet)
 
     mon_enchant lowered_wl(ENCH_LOWERED_WL, 1, attacker, dur * BASELINE_DELAY);
     return add_ench(lowered_wl);
-}
-
-void monster::check_awaken(int)
-{
-    // XXX
 }
 
 int monster::beam_resists(bolt &beam, int hurted, bool doEffects, string /*source*/)

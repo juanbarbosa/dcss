@@ -108,8 +108,8 @@ end
 
 
 species = {"mountain dwarf", "minotaur", "merfolk", "gargoyle", "draconian", "troll", "deep elf",
-           "armataur", "gnoll", "human", "kobold", "djinni", "spriggan", "ghoul", "tengu", "oni",
-           "barachi", "coglin", "vine stalker", "vampire", "demigod", "formicid", "naga",
+           "armataur", "gnoll", "human", "kobold", "djinni", "spriggan", "tengu", "oni",
+           "barachi", "coglin", "vine stalker", "demigod", "formicid", "naga",
            "octopode", "felid", "mummy"}
 
 local old_species = you.species()

@@ -7,6 +7,9 @@
 
 #define DEATH_NAME_LENGTH 10
 
+// Inventory index of the item we're making a spiteful retalation with
+#define SPITEFUL_ATTACK_ITEM_KEY "spiteful_attack_item"
+
 #include "beam.h"
 #include "enum.h"
 #include "kill-method-type.h"
@@ -36,7 +39,8 @@ void reset_damage_counters();
 void ouch(int dam, kill_method_type death_type, mid_t source = MID_NOBODY,
           const char *aux = nullptr, bool see_source = true,
           const char *death_source_name = nullptr,
-          bool skip_multipliers = false);
+          bool skip_multipliers = false,
+          bool skip_awaken = false);
 
 void lose_level();
 bool drain_player(int power = 25, bool announce_full = true,

@@ -347,8 +347,8 @@ if you.race() == "Mummy" then
     return "velvet-covered"
 elseif you.mutation('beak') > 0 then
     return "pearl-beaked"
-elseif you.transform() == "death" then
-    return "ivory-boned"
+elseif you.transform() == "death"
+    return "well-preserved"
 elseif you.transform() == "statue" then
     return "marble-toed"
 elseif you.transform() == "dragon" then
@@ -359,6 +359,10 @@ elseif you.race() == "Octopode" then
     return "soft-tentacled"
 elseif you.race() == "Formicid" then
     return "massive-mandibled"
+elseif you.race() == "Poltergeist" then
+    return "high-spirited"
+elseif you.race() == "Revenant" then
+    return "ivory-boned"
 else
     return "rosy-lipped"
 end

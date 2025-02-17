@@ -471,20 +471,14 @@ string Form::player_prayer_action() const
     return species::prayer_action(you.species);
 }
 
-vector<string> Form::get_fakemuts(bool terse) const
+vector<pair<string, string>> Form::get_fakemuts() const
 {
-    vector<string> result;
-    for (const auto &p : fakemuts)
-        result.push_back(terse ? p.first : p.second);
-    return result;
+    return fakemuts;
 }
 
-vector<string> Form::get_bad_fakemuts(bool terse) const
+vector<pair<string, string>> Form::get_bad_fakemuts() const
 {
-    vector<string> result;
-    for (const auto &p : badmuts)
-        result.push_back(terse ? p.first : p.second);
-    return result;
+    return badmuts;
 }
 
 
@@ -771,10 +765,7 @@ public:
      */
     string get_untransform_message() const override
     {
-        if (you.undead_state(false) == US_ALIVE)
-            return "You feel yourself come back to life.";
-        return "You feel your undeath return to normal.";
-        // ^^^ vampires only, probably
+        return "You feel yourself come back to life.";
     }
 };
 
@@ -785,33 +776,6 @@ private:
     DISALLOW_COPY_AND_ASSIGN(FormBat);
 public:
     static const FormBat &instance() { static FormBat inst; return inst; }
-
-    /**
-     * Get an monster type corresponding to the transformation.
-     *
-     * (Used for console player glyphs.)
-     *
-     * @return  A monster type corresponding to the player in this form.
-     */
-    monster_type get_equivalent_mons() const override
-    {
-        return you.has_mutation(MUT_VAMPIRISM) ? MONS_VAMPIRE_BAT : MONS_BAT;
-    }
-
-    /// Does this form care about skill for UC damage and accuracy, or only XL?
-    bool get_unarmed_uses_skill() const override {
-        return you.get_mutation_level(MUT_VAMPIRISM) >= 2;
-    }
-
-    /**
-     * Get a string describing the form you're turning into. (If not the same
-     * as the one used to describe this form in @.
-     */
-    string get_transform_description() const override
-    {
-        return make_stringf("a %sbat.",
-                            you.has_mutation(MUT_VAMPIRISM) ? "vampire " : "");
-    }
 
     string get_untransform_message() const override { return "You feel less batty."; }
 };
@@ -965,13 +929,12 @@ public:
         return divided_scaling(FormScaling().Scaling(4), random, max, 100);
     }
 
-    vector<string> get_fakemuts(bool terse) const override {
-        return {
-            make_stringf(terse ?
-                         "beast (slay +%d)" :
-                         "Your limbs bulge with bestial killing power. (Slay +%d)",
-                         slay_bonus(false, false))
-        };
+    vector<pair<string, string>> get_fakemuts() const override
+    {
+        return {{
+            make_stringf("beast (slay +%d)", slay_bonus(false, false)),
+            make_stringf("Your limbs bulge with bestial killing power. (Slay +%d)",
+                         slay_bonus(false, false))}};
     }
 };
 
@@ -1027,6 +990,24 @@ public:
     }
 };
 
+class FormVampire : public Form
+{
+private:
+    FormVampire() : Form(transformation::vampire) { }
+    DISALLOW_COPY_AND_ASSIGN(FormVampire);
+public:
+    static const FormVampire &instance() { static FormVampire inst; return inst; }
+};
+
+class FormBatswarm : public Form
+{
+private:
+    FormBatswarm() : Form(transformation::bat_swarm) { }
+    DISALLOW_COPY_AND_ASSIGN(FormBatswarm);
+public:
+    static const FormBatswarm &instance() { static FormBatswarm inst; return inst; }
+};
+
 static const Form* forms[] =
 {
     &FormNone::instance(),
@@ -1064,6 +1045,8 @@ static const Form* forms[] =
     &FormMaw::instance(),
     &FormFlux::instance(),
     &FormSlaughter::instance(),
+    &FormVampire::instance(),
+    &FormBatswarm::instance(),
 };
 
 const Form* get_form(transformation xform)
@@ -1389,46 +1372,26 @@ static int _transform_duration(transformation which_trans, int pow)
 /**
  * Is the player alive enough to become the given form?
  *
- * All undead can enter shadow form; vampires also can enter batform, and, when
- * full, other forms (excepting lichform).
+ * All undead can use Vessel of Slaughter; vampires also can also use their
+ * batform ability.
  *
  * @param which_trans   The transformation which the player is undergoing
  *                      (default you.form).
- * @param involuntary   Whether the transformation is involuntary or not.
- * @param temp                   Whether to factor in temporary limits, e.g. wrong blood level.
- * @return              UFR_GOOD if the player is not blocked from entering the
- *                      given form by their undead race; UFR_TOO_ALIVE if the
- *                      player is too satiated as a vampire; UFR_TOO_DEAD if
- *                      the player is too dead (or too thirsty as a vampire).
+ * @return              True if the player is not blocked from entering the
+ *                      given form by their undead race; false otherwise.
  */
-undead_form_reason lifeless_prevents_form(transformation which_trans,
-                                          bool involuntary, bool temp)
+bool lifeless_prevents_form(transformation which_trans)
 {
     if (!you.undead_state(false)) // intentionally don't pass temp in here
-        return UFR_GOOD; // not undead!
+        return false; // not undead!
 
     if (which_trans == transformation::none)
-        return UFR_GOOD; // everything can become itself
+        return false; // everything can become itself
 
     if (which_trans == transformation::slaughter)
-        return UFR_GOOD; // Godly power can transcend such things as unlife
+        return false; // Godly power can transcend such things as unlife
 
-    if (!you.has_mutation(MUT_VAMPIRISM))
-        return UFR_TOO_DEAD; // ghouls & mummies can't become anything else
-
-    if (which_trans == transformation::death)
-        return UFR_TOO_DEAD; // vampires can never lichform
-
-    if (which_trans == transformation::bat) // can batform bloodless
-    {
-        if (involuntary)
-            return UFR_TOO_DEAD; // but not as a forced polymorph effect
-
-        return !you.vampire_alive || !temp ? UFR_GOOD : UFR_TOO_ALIVE;
-    }
-
-    // other forms can only be entered when alive
-    return you.vampire_alive || !temp ? UFR_GOOD : UFR_TOO_DEAD;
+    return true;
 }
 
 /**
@@ -1441,7 +1404,7 @@ string cant_transform_reason(transformation which_trans,
         return "You have sacrificed the ability to change form!";
 
     // the undead cannot enter most forms.
-    if (lifeless_prevents_form(which_trans, involuntary, temp) == UFR_TOO_DEAD)
+    if (lifeless_prevents_form(which_trans))
         return "Your unliving flesh cannot be transformed in this way.";
 
     if (SP_GARGOYLE == you.species && which_trans == transformation::statue)
@@ -1599,7 +1562,12 @@ static void _enter_form(int pow, transformation which_trans, bool scale_hp = tru
         merfolk_stop_swimming();
 
     // Give the transformation message.
-    mpr(get_form(which_trans)->transform_message());
+    // (Vampire bat swarm ability skips this part.)
+    if (!(you.form == transformation::vampire || you.form == transformation::bat_swarm)
+         && !(which_trans == transformation::vampire || which_trans == transformation::bat_swarm))
+    {
+        mpr(get_form(which_trans)->transform_message());
+    }
 
     // Update your status.
     // Order matters here, take stuff off (and handle attendant HP and stat
@@ -1615,10 +1583,6 @@ static void _enter_form(int pow, transformation which_trans, bool scale_hp = tru
     }
 
     _on_enter_form(which_trans);
-
-    // Update flight status now (won't actually land the player if we're still flying).
-    if (was_flying)
-        land_player();
 
     // Stop constricting, if appropriate. In principle, we could be switching
     // from one form that allows constricting to another, but that seems too
@@ -1675,6 +1639,10 @@ static void _enter_form(int pow, transformation which_trans, bool scale_hp = tru
     // a new artefact talisman or were forcibly polymorphed away from one),
     // refresh equipment properties.
     you.equipment.update();
+
+    // Update flight status now (won't actually land the player if we're still flying).
+    if (was_flying)
+        land_player();
 
     // Update skill boosts for the current state of equipment melds
     // Must happen before the HP check!
@@ -1750,8 +1718,12 @@ bool transform(int pow, transformation which_trans, bool involuntary,
         return true;
     }
 
-    if (you.form != transformation::none)
+    if (you.form != transformation::none
+        && (!(you.form == transformation::vampire || you.form == transformation::bat_swarm)
+            && !(which_trans == transformation::vampire || which_trans == transformation::bat_swarm)))
+    {
         untransform(true, !using_talisman);
+    }
 
     _enter_form(pow, which_trans, !using_talisman);
 
@@ -1857,6 +1829,10 @@ void untransform(bool skip_move, bool scale_hp)
         if (you.body_size(PSIZE_BODY) > constrictor->body_size(PSIZE_BODY))
             you.stop_being_constricted();
     }
+
+    // Called so that artprop flight on talismans specifically ends properly.
+    // (Won't land the player if anything else is keeping them afloat.)
+    land_player();
 
     you.turn_is_over = true;
     if (you.transform_uncancellable)
@@ -1997,26 +1973,11 @@ void set_default_form(transformation t, const item_def *source)
         you.equipment.update();
 }
 
-void vampire_update_transformations()
-{
-    const undead_form_reason form_reason = lifeless_prevents_form();
-    if (form_reason != UFR_GOOD && you.duration[DUR_TRANSFORMATION])
-    {
-        print_stats();
-        update_screen();
-        mprf(MSGCH_WARN,
-             "Your blood-%s body can't sustain your transformation.",
-             form_reason == UFR_TOO_DEAD ? "deprived" : "filled");
-        unset_default_form();
-        untransform();
-    }
-}
-
 // TODO: dataify? move to member functions?
 int form_base_movespeed(transformation tran)
 {
     // statue form is handled as a multiplier in player_speed, not a movespeed.
-    if (tran == transformation::bat)
+    if (tran == transformation::bat || tran == transformation::bat_swarm)
         return 5; // but allowed minimum is six
     else if (tran == transformation::pig)
         return 7;

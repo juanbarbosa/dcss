@@ -707,6 +707,7 @@ static int _count_digits(int val)
 static const equipment_slot slot_order[] =
 {
     SLOT_WEAPON, SLOT_OFFHAND, SLOT_WEAPON_OR_OFFHAND, SLOT_BODY_ARMOUR,
+    SLOT_HAUNTED_AUX,
     SLOT_HELMET, SLOT_CLOAK, SLOT_GLOVES, SLOT_BOOTS, SLOT_BARDING,
     SLOT_AMULET, SLOT_RING, SLOT_GIZMO
 };
@@ -1233,13 +1234,14 @@ static void _get_status_lights(vector<status_light>& out)
         STATUS_ORB,
         STATUS_ZOT,
         STATUS_STAT_ZERO,
-        STATUS_ALIVE_STATE,
         DUR_PARALYSIS,
         DUR_CONF,
         DUR_PETRIFYING,
         DUR_PETRIFIED,
         DUR_BERSERK,
         DUR_TELEPORT,
+        DUR_ENKINDLED,
+        STATUS_MNEMOPHAGE,
         DUR_HASTE,
         DUR_SLOW,
         STATUS_SPEED,

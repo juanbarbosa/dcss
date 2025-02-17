@@ -277,6 +277,9 @@ string item_def::name(description_level_type descrip, bool terse, bool ident,
                 case SLOT_GIZMO:
                     buff << " (installed)";
                     break;
+                case SLOT_HAUNTED_AUX:
+                    buff << " (haunted)";
+                    break;
                 default:
                     die("Item in an invalid slot (%d)", eq);
                 }
@@ -291,8 +294,11 @@ string item_def::name(description_level_type descrip, bool terse, bool ident,
             buff << " (quivered)";
     }
 
-    if (descrip != DESC_BASENAME && descrip != DESC_DBNAME && with_inscription)
+    if (descrip != DESC_BASENAME && descrip != DESC_DBNAME
+        && descrip != DESC_QUALNAME && with_inscription)
+    {
         buff << _item_inscription(*this);
+    }
 
     // These didn't have "cursed " prepended; add them here so that
     // it comes after the inscription.
@@ -1533,7 +1539,7 @@ string item_def::name_aux(description_level_type desc, bool terse, bool ident,
             buff << "cursed ";
 
         // Don't list unenchantable armor as +0.
-        if (identified && !dbname && armour_is_enchantable(*this))
+        if (identified && !dbname && !qualname && armour_is_enchantable(*this))
             buff << make_stringf("%+d ", plus);
 
         if ((item_typ == ARM_GLOVES || item_typ == ARM_BOOTS)
@@ -2909,9 +2915,9 @@ bool is_bad_item(const item_def &item)
  * Is an item dangerous but potentially worthwhile?
  *
  * @param item The item being queried.
- * @param temp Should temporary conditions such as transformations and
- *             vampire state be taken into account?  Religion (but
- *             not its absence) is considered to be permanent here.
+ * @param temp Should temporary conditions such as transformations be taken into
+ *             account?  Religion (but not its absence) is considered to be
+ *             permanent here.
  * @return True if using the item is known to be risky but occasionally
  *         worthwhile.
  */
@@ -3192,9 +3198,9 @@ string cannot_drink_item_reason(const item_def *item, bool temp,
  *     benefit.
  *
  * @param item The item being queried.
- * @param temp Should temporary conditions such as transformations and
- *             vampire state be taken into account? Religion (but
- *             not its absence) is considered to be permanent here.
+ * @param temp Should temporary conditions such as transformations be taken into
+ *             account? Religion (but not its absence) is considered to be
+ *             permanent here.
  * @param ident Should uselessness be checked as if the item were already
  *              identified?
  * @return True if the item is known to be useless.
@@ -3377,10 +3383,7 @@ bool is_useless_item(const item_def &item, bool temp, bool ident)
 #if TAG_MAJOR_VERSION == 34
                    you.get_mutation_level(MUT_NO_REGENERATION) > 0 ||
 #endif
-                     (temp
-                       && (you.get_mutation_level(MUT_INHIBITED_REGENERATION) > 0
-                           || you.has_mutation(MUT_VAMPIRISM))
-                       && regeneration_is_inhibited());
+                    (temp && regeneration_is_inhibited());
 
         case AMU_MANA_REGENERATION:
             return !you.max_magic_points;

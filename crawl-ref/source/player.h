@@ -55,6 +55,14 @@
 #define RAMPAGE_HEAL_KEY "rampage_heal_strength"
 #define RAMPAGE_HEAL_MAX 7
 #define BLIND_COLOUR_KEY "blind_colour"
+#define TRICKSTER_POW_KEY "trickster_power"
+#define CACOPHONY_XP_KEY "cacophony_xp"
+#define BATFORM_XP_KEY "batform_xp"
+
+constexpr int ENKINDLE_CHARGE_COST = 40;
+#define ENKINDLE_CHARGES_KEY "enkindle_charges"
+#define ENKINDLE_PROGRESS_KEY "enkindle_progress"
+#define ENKINDLE_GIFT_GIVEN_KEY "enkindle_gifted"
 
 // display/messaging breakpoints for penalties from Ru's MUT_HORROR
 #define HORROR_LVL_EXTREME  3
@@ -199,7 +207,6 @@ public:
     bool royal_jelly_dead;
     bool transform_uncancellable;
     bool fishtail; // Merfolk fishtail transformation
-    bool vampire_alive;
 
     unsigned short pet_target;
 
@@ -723,7 +730,7 @@ public:
     void paralyse(const actor *, int str, string source = "") override;
     void petrify(const actor *, bool force = false) override;
     bool fully_petrify(bool quiet = false) override;
-    bool vex(const actor*, int dur, string source = "") override;
+    bool vex(const actor* who, int dur, string source = "", string special_msg = "") override;
     void give_stun_immunity(int duration);
     void slow_down(actor *, int str) override;
     void confuse(actor *, int strength) override;
@@ -815,9 +822,8 @@ public:
     bool immune_to_hex(const spell_type hex) const;
 
     bool asleep() const override;
-    void put_to_sleep(actor* source, int power = 0, bool hibernate = false) override;
-    void awaken();
-    void check_awaken(int disturbance) override;
+    void put_to_sleep(actor* source, int duration = 0, bool hibernate = false) override;
+    void wake_up(bool force = false);
     int beam_resists(bolt &beam, int hurted, bool doEffects, string source)
         override;
     bool can_feel_fear(bool include_unknown) const override;
@@ -1183,6 +1189,10 @@ void dec_channel_player(int delay);
 void dec_frozen_ramparts(int delay);
 void reset_rampage_heal_duration();
 void apply_rampage_heal();
+void trickster_trigger(const monster& victim, enchant_type ench);
+int trickster_bonus();
+int enkindle_max_charges();
+void maybe_harvest_memory(const monster& victim);
 bool invis_allowed(bool quiet = false, string *fail_reason = nullptr,
                                                         bool temp = true);
 bool flight_allowed(bool quiet = false, string *fail_reason = nullptr);

@@ -478,7 +478,7 @@ public:
     void paralyse(const actor *, int str, string source = "") override;
     void petrify(const actor *, bool force = false) override;
     bool fully_petrify(bool quiet = false) override;
-    bool vex(const actor *who, int duration, string source = "") override;
+    bool vex(const actor* who, int dur, string source = "", string special_msg = "") override;
     void slow_down(actor *, int str) override;
     void confuse(actor *, int strength) override;
     bool drain(const actor *, bool quiet = false, int pow = 3) override;
@@ -501,11 +501,10 @@ public:
     bool shift(coord_def p = coord_def(0, 0));
     void suicide(int hp_target = -1);
 
-    void put_to_sleep(actor *attacker, int power = 0, bool hibernate = false)
+    void put_to_sleep(actor *attacker, int duration = 0, bool hibernate = false)
         override;
     void weaken(const actor *attacker, int pow) override;
     bool strip_willpower(actor *attacker, int dur, bool quiet = false) override;
-    void check_awaken(int disturbance) override;
     int beam_resists(bolt &beam, int hurted, bool doEffects, string source = "")
         override;
 

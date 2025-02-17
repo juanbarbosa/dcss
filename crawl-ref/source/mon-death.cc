@@ -75,6 +75,7 @@
 #endif
 #include "tilepick.h"
 #include "timed-effects.h"
+#include "transform.h"
 #include "traps.h"
 #include "unwind.h"
 #include "viewchar.h"
@@ -731,6 +732,59 @@ static bool _yred_bind_soul(monster* mons, killer_type killer)
     return false;
 }
 
+static bool _vampire_make_thrall(monster* mons)
+{
+    if (!mons->props.exists(VAMPIRIC_THRALL_KEY) || you.allies_forbidden())
+        return false;
+
+    // Check if another thrall is already alive
+    for (monster_iterator mi; mi; ++mi)
+        if (mi->was_created_by(MON_SUMM_THRALL))
+            return false;
+
+    // Okay, let's try to make them for real!
+    mprf("%s rises to serve you!", mons->name(DESC_THE).c_str());
+    record_monster_defeat(mons, KILL_YOU);
+
+    mons->hit_points = mons->max_hit_points;
+    mons->flags |= MF_FAKE_UNDEAD;
+
+    if (mons->is_actual_spellcaster())
+    {
+        mons->spells.push_back({SPELL_VAMPIRIC_DRAINING, 50, MON_SPELL_WIZARD});
+        mons->props[CUSTOM_SPELLS_KEY] = true;
+    }
+
+    mons->attitude = ATT_FRIENDLY;
+    mons->add_ench(mon_enchant(ENCH_VAMPIRE_THRALL, 0, &you, INFINITE_DURATION));
+
+    const int pow = get_form(transformation::vampire)->get_level(10);
+    const int dur = random_range(pow, pow * 2) + 30;
+
+    mons->mark_summoned(MON_SUMM_THRALL, 0, false);
+    mons->add_ench(mon_enchant(ENCH_SUMMON_TIMER, 0, &you, dur));
+    mons_att_changed(mons);
+    gain_exp(exper_value(*mons));
+
+    // End constriction.
+    mons->stop_constricting_all();
+    mons->stop_being_constricted();
+
+    // Cancel fleeing and such.
+    mons->behaviour = BEH_SEEK;
+
+    // Remove level annotation.
+    mons->props[NO_ANNOTATE_KEY] = true;
+    remove_unique_annotation(mons);
+
+    behaviour_event(mons, ME_EVAL);
+
+    // Schedule our actual revival for the end of this combat round.
+    avoided_death_fineff::schedule(mons);
+
+    return true;
+}
+
 
 /**
  * Attempt to get a deathbed conversion for the given orc.
@@ -1029,6 +1083,9 @@ static bool _monster_avoided_death(monster* mons, killer_type killer,
     if (_ely_protect_ally(mons, killer))
         return true;
     if (_ely_heal_monster(mons, killer, killer_index))
+        return true;
+
+    if (_vampire_make_thrall(mons))
         return true;
 
     return false;
@@ -2072,12 +2129,14 @@ static void _player_on_kill_effects(monster& mons, killer_type killer,
         if (can_divine_heal && have_passive(passive_t::mp_on_kill))
             mp_heal += 1 + random2(mons.get_experience_level() / 2);
 
+#if TAG_MAJOR_VERSION == 34
         if (you.has_mutation(MUT_DEVOUR_ON_KILL)
             && mons.holiness() & (MH_NATURAL | MH_PLANT)
             && coinflip())
         {
             hp_heal += 1 + random2avg(1 + you.experience_level, 3);
         }
+#endif
 
         if (hp_heal && you.hp < you.hp_max
             && !you.duration[DUR_DEATHS_DOOR])
@@ -2180,6 +2239,13 @@ static void _player_on_kill_effects(monster& mons, killer_type killer,
             dprf("Powered by Death strength +%d=%d", pbd_inc,
                  pbd_str + pbd_inc);
         }
+    }
+
+    // Revenant kill bonus
+    if (gives_player_xp && you.has_mutation(MUT_MNEMOPHAGE)
+        && you.see_cell_no_trans(mons.pos()))
+    {
+        maybe_harvest_memory(mons);
     }
 
     // Various kill progress tracking
@@ -2557,6 +2623,14 @@ item_def* monster_die(monster& mons, killer_type killer,
         }
     }
 
+    if (mons.type == MONS_HAUNTED_ARMOUR && real_death)
+    {
+        // Making the current sensible assumption that these are only ever
+        // created by Cacophony.
+        simple_monster_message(mons, " is driven back to you.", false,
+                                MSGCH_MONSTER_DAMAGE, MDAM_DEAD);
+        did_death_message = true;
+    }
     if (mons.type == MONS_DANCING_WEAPON)
     {
         int w_idx = mons.inv[MSLOT_WEAPON];
@@ -2817,8 +2891,10 @@ item_def* monster_die(monster& mons, killer_type killer,
             // _print_summon_poof_message
 
             string msg;
+            if (mons.has_ench(ENCH_VAMPIRE_THRALL))
+                msg = " turns to dust.";
             // ratskin cloak
-            if (mons_genus(mons.type) == MONS_RAT)
+            else if (mons_genus(mons.type) == MONS_RAT)
                 msg = " returns to the shadows of the Dungeon.";
             // Death Channel / Soul Splinter
             else if (mons.type == MONS_SPECTRAL_THING

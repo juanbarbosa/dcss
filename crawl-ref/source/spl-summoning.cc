@@ -754,15 +754,12 @@ static void _animate_weapon(int pow, actor* target)
 {
     item_def * const wpn = target->weapon();
     ASSERT(wpn);
-    // If sac love, the weapon will go after you, not the target.
-    const bool hostile = you.allies_forbidden();
     const int dur = min(2 + div_rand_round(random2(1 + pow), 5), 6);
 
-    mgen_data mg(MONS_DANCING_WEAPON,
-                 hostile ? BEH_HOSTILE : BEH_FRIENDLY,
+    mgen_data mg(MONS_DANCING_WEAPON, BEH_FRIENDLY,
                  target->pos(),
-                 hostile ? MHITYOU : target->mindex(),
-                 hostile ? MG_NONE : MG_FORCE_BEH);
+                 target->mindex(),
+                 MG_FORCE_BEH);
     mg.set_summoned(&you, SPELL_TUKIMAS_DANCE, summ_dur(dur), false);
     mg.set_range(1, 2);
     mg.props[TUKIMA_WEAPON] = *wpn;
@@ -776,13 +773,9 @@ static void _animate_weapon(int pow, actor* target)
         return;
     }
 
-    // Don't haunt yourself under sac love.
-    if (!hostile)
-    {
-        mons->add_ench(mon_enchant(ENCH_HAUNTING, 1, target,
-                                   INFINITE_DURATION));
-        mons->foe = target->mindex();
-    }
+    mons->add_ench(mon_enchant(ENCH_HAUNTING, 1, target,
+                                INFINITE_DURATION));
+    mons->foe = target->mindex();
 
     // We are successful. Unwield the weapon, removing any wield effects.
     mprf("%s dances into the air!", wpn->name(DESC_THE).c_str());
@@ -3350,9 +3343,10 @@ void clockwork_bee_pick_new_target(monster& bee)
     }
 }
 
+// For spell menu display only
 dice_def diamond_sawblade_damage(int power)
 {
-    return zap_damage(ZAP_SHRED, (1 + div_rand_round(power, 10)) * 12, true, false);
+    return zap_damage(ZAP_SHRED, (1 + power/ 10) * 12, true, false);
 }
 
 vector<coord_def> diamond_sawblade_spots(bool actual)

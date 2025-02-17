@@ -1930,8 +1930,11 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
                 result = "Crusher";
             else if (species == SP_ONI && skill_rank == 5)
                 result = "Yokozuna";
-            else if (!dex_better && species == SP_DJINNI && skill_rank == 5)
+            else if (!dex_better && (species == SP_DJINNI || species == SP_POLTERGEIST)
+                        && skill_rank == 5)
+            {
                 result = "Weightless Champion";
+            }
             else
             {
                 result = dex_better ? martial_arts_titles[skill_rank]
@@ -1965,12 +1968,18 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
         case SK_SHIELDS:
             if (species == SP_SPRIGGAN && skill_rank > 3)
                 result = "Defender";
+            else if (species == SP_POLTERGEIST && skill_rank == 5)
+                result = "Polterguardian";
             break;
 
         case SK_RANGED_WEAPONS:
             if (species::is_elven(species) && skill_rank == 5)
                 result = "Master Archer";
             break;
+
+        case SK_THROWING:
+            if (species == SP_POLTERGEIST && skill_rank == 5)
+                result = "Undying Armoury";
 
         case SK_SPELLCASTING:
             if (species == SP_DJINNI && skill_rank == 5)
@@ -2022,6 +2031,8 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
         case SK_TRANSLOCATIONS:
             if (species == SP_FORMICID && skill_rank == 5)
                 result = "Teletunneler";
+            else if (species == SP_POLTERGEIST && skill_rank == 5)
+                result = "Spatial Maelstrom";
             break;
 
         case SK_ALCHEMY:
@@ -2034,12 +2045,12 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
                 result = "Fire Dragon";
             else if (species == SP_MUMMY && skill_rank == 5)
                 result = "Highly Combustible";
-            else if (species == SP_GHOUL && skill_rank == 5)
-                result = "Searing Wretch";
             else if (species == SP_GARGOYLE && skill_rank == 5)
                 result = "Molten";
             else if (species == SP_DJINNI && skill_rank == 5)
                 result = "Smokeless Flame";
+            else if (species == SP_POLTERGEIST && skill_rank == 5)
+                result = "Fire Storm";
             break;
 
         case SK_ICE_MAGIC:
@@ -2047,11 +2058,15 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
                 result = "Ice Dragon";
             else if (species == SP_DJINNI && skill_rank == 5)
                 result = "Marid";
+            else if (species == SP_POLTERGEIST && skill_rank == 5)
+                result = "Polar Vortex";
             break;
 
         case SK_AIR_MAGIC:
             if (species::is_draconian(species) && skill_rank == 5)
                 result = "Storm Dragon";
+            else if (species == SP_POLTERGEIST && skill_rank == 5)
+                result = "Twister";
             break;
 
         case SK_EARTH_MAGIC:
@@ -2082,6 +2097,10 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
                 result = "Holy Roller";
             else if (species == SP_COGLIN && skill_rank == 5 && god == GOD_FEDHAS)
                 result = "Cobgoblin"; // hm.
+            else if (species == SP_REVENANT && skill_rank == 5 && god == GOD_XOM)
+                result = "Laughing Skull";
+            else if (species == SP_REVENANT && skill_rank == 5 && god == GOD_USKAYAW)
+                result = "Danse Macabre";
             else if (god != GOD_NO_GOD)
                 result = god_title(god, species, piety);
             else if (species == SP_BARACHI)
@@ -2101,6 +2120,14 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
         default:
             break;
         }
+        // Make sure the traitor induced title overrides under penance
+        if (you.attribute[ATTR_TRAITOR] > 0)
+        {
+            god_type betrayed_god = static_cast<god_type>(
+                you.attribute[ATTR_TRAITOR]);
+            result = god_title(betrayed_god, species, piety);
+        }
+
         if (result.empty())
             result = skill_titles[best_skill][skill_rank];
     }
