@@ -2198,6 +2198,9 @@ int melee_attack::player_apply_final_multipliers(int damage, bool aux)
 
     apply_rev_penalty(damage);
 
+    if (dmg_mult)
+        damage = damage * (100 + dmg_mult) / 100;
+
     if (you.duration[DUR_CONFUSING_TOUCH] && !aux)
         return 0;
 
@@ -4635,6 +4638,13 @@ bool spellclaws_attack(int spell_level)
     // Only operates for melee attacks.
     if (you.weapon() && is_range_weapon(*you.weapon()))
         return false;
+
+    // Struggle against nets rather than ignore them.
+    if (you.caught())
+    {
+        free_self_from_net();
+        return false;
+    }
 
     // Gather all possible targets in attack range
     list<actor*> targets;

@@ -110,7 +110,7 @@ static bool _fill_out_corpse(const monster& mons, item_def& corpse)
     if (mons.props.exists(ORIGINAL_TYPE_KEY))
     {
         // Shapeshifters too.
-        mtype = (monster_type) mons.props[ORIGINAL_TYPE_KEY].get_int();
+        mtype = static_cast<monster_type>(mons.props[ORIGINAL_TYPE_KEY].get_int());
         corpse_class = mons_species(mtype);
     }
 
@@ -2388,7 +2388,7 @@ item_def* monster_die(monster& mons, killer_type killer,
 
     // Chance to cause monsters you kill yourself to explode with Mark of Haemoclasm
     if (YOU_KILL(killer) && you.has_mutation(MUT_MAKHLEB_MARK_HAEMOCLASM)
-        && makhleb_haemoclasm_trigger_check(mons))
+        && !mons.is_firewood() && makhleb_haemoclasm_trigger_check(mons))
     {
         mons.props[MAKHLEB_HAEMOCLASM_KEY] = true;
     }
@@ -3298,7 +3298,7 @@ item_def* monster_die(monster& mons, killer_type killer,
                 you.duration[DUR_ANCESTOR_DELAY] = random_range(300, 600);
         }
         else if (mons.type == MONS_ORC_APOSTLE)
-            beogh_swear_vegeance(mons);
+            beogh_swear_vengeance(mons);
     }
     else if (mons.is_divine_companion()
              && killer == KILL_BANISHED

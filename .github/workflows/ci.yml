@@ -17,12 +17,18 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # all history - Checkconventioncommit needs to know which commits are being merged
       - name: Checkwhite
         run: util/checkwhite -n
         working-directory: crawl-ref/source
       - name: Unbrace
         run: util/unbrace -n
         working-directory: crawl-ref/source
+      - name: Checkconventionalcommit
+        run: util/checkconventionalcommit.py
+        working-directory: crawl-ref/source
+        continue-on-error: true
 
   build_source:
     permissions:
@@ -582,7 +588,7 @@ jobs:
     permissions:
       contents: read #  to fetch code (actions/checkout)
 
-    runs-on: ubuntu-20.04 # TODO: go back to ubuntu-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         # oldest non-eol security release + current bugfix version
@@ -773,7 +779,7 @@ jobs:
   deploy_docs:
     name: Deploy docs
     needs: build_docs
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    if: ${{ github.event_name == 'push' && github.repository == 'crawl/crawl' && github.ref == 'refs/heads/master' }}
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
     permissions:
       pages: write      # to deploy to Pages
@@ -802,7 +808,7 @@ jobs:
       - build_monster
       - build_docs
       - deploy_docs
-    if: failure() && github.event_name == 'push'
+    if: failure() && github.event_name == 'push' && github.repository == 'crawl/crawl'
     runs-on: ubuntu-22.04
     steps:
       - name: Build message

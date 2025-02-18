@@ -61,6 +61,7 @@
 #include "notes.h"
 #include "output.h"
 #include "player-equip.h"
+#include "player-reacts.h"
 #include "player-save-info.h"
 #include "player-stats.h"
 #include "prompt.h"
@@ -1688,9 +1689,7 @@ int player_prot_life(bool allow_random, bool temp, bool items)
 // want to go past 6 (see below). -- bwr
 int player_movement_speed(bool check_terrain, bool temp)
 {
-    int mv = you.form == transformation::none
-        ? 10
-        : form_base_movespeed(you.form);
+    int mv = form_base_movespeed(you.form);
 
     if (check_terrain && feat_is_water(env.grid(you.pos())))
     {
@@ -2557,6 +2556,9 @@ void calc_hp(bool scale)
             interrupt_activity(activity_interrupt::full_hp);
         dprf("HP changed: %d/%d -> %d/%d", oldhp, old_max, you.hp, you.hp_max);
         you.redraw_hit_points = true;
+
+        if (you.hp == you.hp_max)
+            maybe_attune_regen_items(true, false);
     }
 }
 
@@ -4680,7 +4682,7 @@ void barb_player(int turns, int pow)
 {
     ASSERT(!crawl_state.game_is_arena());
 
-    if (turns <= 0 || pow <= 0)
+    if (turns <= 0 || pow <= 0 || you.is_insubstantial())
         return;
 
     const int max_turns = 12;
