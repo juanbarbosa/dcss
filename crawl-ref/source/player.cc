@@ -1065,7 +1065,9 @@ static bool _mons_inhibits_regen(const monster &m)
 bool regeneration_is_inhibited(const monster *m)
 {
     // used mainly for resting: don't add anything here that can be waited off
-    if (you.get_mutation_level(MUT_INHIBITED_REGENERATION) == 1)
+    if (you.get_mutation_level(MUT_INHIBITED_REGENERATION) == 1
+        || you.form == transformation::vampire
+        || you.form == transformation::bat_swarm)
     {
         if (m)
             return _mons_inhibits_regen(*m);
@@ -1329,43 +1331,39 @@ int player_res_cold(bool allow_random, bool temp, bool items)
     return rc;
 }
 
-bool player::res_corr(bool allow_random, bool temp) const
+int player_res_corrosion(bool allow_random, bool temp, bool items)
 {
-    if (temp)
-    {
-        // dragonskin cloak: 0.5 to draconic resistances
-        if (allow_random && you.unrand_equipped(UNRAND_DRAGONSKIN)
-            && coinflip())
-        {
-            return true;
-        }
+    if (temp && you.duration[DUR_RESISTANCE])
+        return 1;
 
-        if (you.duration[DUR_RESISTANCE])
-            return true;
-    }
-
-    if (cur_form(temp)->res_acid())
-        return true;
+    if (cur_form(temp)->res_corr())
+        return 1;
 
     if (have_passive(passive_t::resist_corrosion))
-        return true;
+        return 1;
 
-    if (get_mutation_level(MUT_ACID_RESISTANCE))
-        return true;
-
-    // TODO: why doesn't this use the usual form suppression mechanism?
-    if (form_keeps_mutations()
-        && get_mutation_level(MUT_YELLOW_SCALES) >= 3)
+    if (you.get_mutation_level(MUT_ACID_RESISTANCE)
+        || you.get_mutation_level(MUT_YELLOW_SCALES) >= 3)
     {
-        return true;
+        return 1;
     }
 
-    return actor::res_corr(allow_random, temp);
-}
+    if (items)
+    {
+        if (you.scan_artefacts(ARTP_RCORR)
+            || you.wearing(OBJ_ARMOUR, ARM_ACID_DRAGON_ARMOUR)
+            || you.wearing_jewellery(RING_RESIST_CORROSION)
+            || you.wearing_ego(OBJ_ARMOUR, SPARM_PRESERVATION))
+        {
+            return 1;
+        }
 
-int player_res_acid(bool items)
-{
-    return you.res_corr(items) ? 1 : 0;
+        // dragonskin cloak: 0.5 to draconic resistances
+        if (allow_random && you.unrand_equipped(UNRAND_DRAGONSKIN) && coinflip())
+            return 1;
+    }
+
+    return 0;
 }
 
 int player_res_electricity(bool allow_random, bool temp, bool items)
@@ -1803,7 +1801,8 @@ bool player_is_shapechanged()
 {
     // TODO: move into data
     return form_changes_physiology(you.form)
-        && you.form != transformation::death;
+        && you.form != transformation::death
+        && you.form != transformation::vampire;
 }
 
 bool player_acrobatic()
@@ -6568,9 +6567,9 @@ bool player::is_amorphous() const
     return false;
 }
 
-int player::res_acid() const
+int player::res_corr() const
 {
-    return player_res_acid();
+    return player_res_corrosion();
 }
 
 int player::res_fire() const
@@ -6926,7 +6925,7 @@ bool player::poison(actor *agent, int amount, bool force)
 }
 
 void player::expose_to_element(beam_type element, int _strength,
-                               bool slow_cold_blood)
+                               const actor* /*source*/, bool slow_cold_blood)
 {
     ::expose_player_to_element(element, _strength, slow_cold_blood);
 }
@@ -6992,32 +6991,29 @@ bool player::resists_dislodge(string event) const
     return true;
 }
 
-bool player::corrode_equipment(const char* corrosion_source, int degree)
+bool player::corrode(const actor* /*source*/, const char* corrosion_msg, int amount)
 {
     // always increase duration, but...
     increase_duration(DUR_CORROSION, 10 + roll_dice(2, 4), 50,
                       make_stringf("%s corrodes you!",
-                                   corrosion_source).c_str());
+                                   corrosion_msg).c_str());
 
-    // the more corrosion you already have, the lower the odds of more
-    // Static environmental corrosion doesn't factor in
-    // Reduce corrosion amount by 50% if you have resistance
-    int prev_corr = props[CORROSION_KEY].get_int();
-    bool did_corrode = false;
-    for (int i = 0; i < degree; i++)
-        if (!x_chance_in_y(prev_corr, prev_corr + 28))
-        {
-            prev_corr += res_corr() ? 2 : 4;
-            props[CORROSION_KEY] = prev_corr;
-            did_corrode = true;
-        }
+    // Reduce corrosion amount by 50% if you have resistance.
+    if (res_corr())
+        amount /= 2;
 
-    if (did_corrode)
+    // The more corrosion you already have, the lower the odds of stacking more
+    // (though Dis's passive corrosion is not included).
+    int& corr = props[CORROSION_KEY].get_int();
+    if (!x_chance_in_y(corr, corr + 28))
     {
+        corr += amount;
         redraw_armour_class = true;
         wield_change = true;
+        return true;
     }
-    return true;
+
+    return false;
 }
 
 /**
@@ -7027,8 +7023,6 @@ bool player::corrode_equipment(const char* corrosion_source, int degree)
  */
 void player::splash_with_acid(actor* evildoer)
 {
-    acid_corrode(3);
-
     const int dam = roll_dice(4, 3);
     const int post_res_dam = resist_adjust_damage(&you, BEAM_ACID, dam);
 
@@ -7043,12 +7037,9 @@ void player::splash_with_acid(actor* evildoer)
         ouch(post_res_dam, KILLED_BY_ACID,
              evildoer ? evildoer->mid : MID_NOBODY);
     }
-}
 
-void player::acid_corrode(int acid_strength)
-{
-    if (binomial(3, acid_strength + 1, 30))
-        corrode_equipment();
+    if (x_chance_in_y(35, 100))
+        corrode(evildoer);
 }
 
 bool player::drain(const actor */*who*/, bool quiet, int pow)
@@ -7589,7 +7580,7 @@ bool player::is_motile() const
                             && !you.duration[DUR_FORTRESS_BLAST_TIMER];
 }
 
-bool player::malmutate(const string &reason)
+bool player::malmutate(const actor* /*source*/, const string &reason)
 {
     ASSERT(!crawl_state.game_is_arena());
 
@@ -8882,6 +8873,11 @@ static bool _ench_triggers_trickster(enchant_type ench)
     }
 }
 
+static int _trickster_max_boost()
+{
+    return 6 + you.experience_level * 4 / 5;
+}
+
 // Increment AC boost when applying a negative status effect to a monster.
 void trickster_trigger(const monster& victim, enchant_type ench)
 {
@@ -8893,19 +8889,25 @@ void trickster_trigger(const monster& victim, enchant_type ench)
 
     const int min_bonus = 3 + you.experience_level / 6;
 
-    // Start the bonus off at a more meaningful level, but give less for each
-    // effect after that.
     if (!you.props.exists(TRICKSTER_POW_KEY))
     {
         you.props[TRICKSTER_POW_KEY].get_int() = 0;
         mprf(MSGCH_DURATION, "You feel bolstered by spreading misfortune.");
     }
 
+    // Start the bonus off at meaningful level, but give less for each effect
+    // beyond that (and make it extra-hard to stack up the maximum bonus)
     int& bonus = you.props[TRICKSTER_POW_KEY].get_int();
     if (bonus < min_bonus)
         bonus = min_bonus;
+    else if (bonus >= 15)
+        bonus += random2(2);
     else
         bonus += 1;
+
+    const int max = _trickster_max_boost() + 10;
+    if (bonus > max)
+        bonus = max;
 
     // Give a few turns before the effect starts to decay.
     if (you.duration[DUR_TRICKSTER_GRACE] < 60)
@@ -8920,8 +8922,7 @@ int trickster_bonus()
     if (!you.props.exists(TRICKSTER_POW_KEY))
         return 0;
 
-    const int max_boost = 6 + you.experience_level * 4 / 5;
-    return min(max_boost, you.props[TRICKSTER_POW_KEY].get_int());
+    return min(_trickster_max_boost(), you.props[TRICKSTER_POW_KEY].get_int());
 }
 
 int enkindle_max_charges()

@@ -800,7 +800,7 @@ void monster::remove_enchantment_effect(const mon_enchant &me, bool quiet)
 
     case ENCH_CORROSION:
         if (!quiet)
-           simple_monster_message(*this, " is no longer covered in acid.");
+           simple_monster_message(*this, " is no longer corroded.");
         break;
 
     case ENCH_GOLD_LUST:
@@ -1000,6 +1000,14 @@ void monster::remove_enchantment_effect(const mon_enchant &me, bool quiet)
                 simple_monster_message(*this, " wakes up again.");
             behaviour_event(this, coinflip() ? ME_DISTURB : ME_ALERT, me.agent(), pos());
         }
+        break;
+
+    case ENCH_PYRRHIC_RECOLLECTION:
+        if (!quiet)
+            simple_monster_message(*this, " memory burns away to nothing.", true);
+        spells.clear();
+        spells.push_back({SPELL_PYRRHIC_RECOLLECTION, 0, MON_SPELL_NATURAL});
+        spells.push_back({SPELL_BLINK_CLOSE, 15, MON_SPELL_WIZARD});
         break;
 
     default:
@@ -1321,23 +1329,29 @@ void monster::apply_enchantment(const mon_enchant &me)
     switch (me.ench)
     {
     case ENCH_FRENZIED:
+    {
+        const actor* old_agent = me.agent();
         if (decay_enchantment(en))
         {
             simple_monster_message(*this, " is no longer in a wild frenzy.");
             const int duration = random_range(70, 130);
-            add_ench(mon_enchant(ENCH_FATIGUE, 0, 0, duration));
-            add_ench(mon_enchant(ENCH_SLOW, 0, 0, duration));
+            add_ench(mon_enchant(ENCH_FATIGUE, 0, old_agent, duration));
+            add_ench(mon_enchant(ENCH_SLOW, 0, old_agent, duration));
         }
+    }
         break;
 
     case ENCH_BERSERK:
+    {
+        const actor* old_agent = me.agent();
         if (decay_enchantment(en))
         {
             simple_monster_message(*this, " is no longer berserk.");
             const int duration = random_range(70, 130);
-            add_ench(mon_enchant(ENCH_FATIGUE, 0, 0, duration));
-            add_ench(mon_enchant(ENCH_SLOW, 0, 0, duration));
+            add_ench(mon_enchant(ENCH_FATIGUE, 0, old_agent, duration));
+            add_ench(mon_enchant(ENCH_SLOW, 0, old_agent, duration));
         }
+    }
         break;
 
     case ENCH_FATIGUE:
@@ -1368,7 +1382,6 @@ void monster::apply_enchantment(const mon_enchant &me)
     case ENCH_DOUBLED_HEALTH:
     case ENCH_STRONG_WILLED:
     case ENCH_IDEALISED:
-    case ENCH_LIFE_TIMER:
     case ENCH_FLIGHT:
     case ENCH_DAZED:
     case ENCH_RECITE_TIMER:
@@ -1414,6 +1427,7 @@ void monster::apply_enchantment(const mon_enchant &me)
     case ENCH_VEXED:
     case ENCH_DEEP_SLEEP:
     case ENCH_DROWSY:
+    case ENCH_PYRRHIC_RECOLLECTION:
         decay_enchantment(en);
         break;
 
@@ -2080,9 +2094,9 @@ static const char *enchant_names[] =
 #endif
     "temporarily pacified",
 #if TAG_MAJOR_VERSION == 34
-    "withdrawn", "attached",
+    "withdrawn", "attached", "guardian_timer",
 #endif
-    "guardian_timer", "flight", "liquefying", "polar_vortex",
+    "flight", "liquefying", "polar_vortex",
 #if TAG_MAJOR_VERSION == 34
     "fake_abjuration",
 #endif
@@ -2173,7 +2187,7 @@ static const char *enchant_names[] =
     "misdirected", "changed appearance", "shadowless", "doubled_health",
     "grapnel", "tempered", "hatching", "blinkitis", "chaos_laced", "vexed",
     "deep sleep", "drowsy",
-    "vampire thrall",
+    "vampire thrall", "pyrrhic recollection",
     "buggy", // NUM_ENCHANTMENTS
 };
 
@@ -2413,9 +2427,6 @@ int mon_enchant::calc_duration(const monster* mons,
         break;
     case ENCH_SLEEP_WARY:
         cturn = 1000 / _mod_speed(50, mons->speed);
-        break;
-    case ENCH_LIFE_TIMER:
-        cturn = 20 * (4 + random2(4)) / _mod_speed(10, mons->speed);
         break;
     case ENCH_INNER_FLAME:
         return random_range(25, 35) * 10;

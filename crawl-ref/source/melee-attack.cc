@@ -552,22 +552,27 @@ void melee_attack::do_vampire_lifesteal()
         && (you.form == transformation::vampire
             || you.form == transformation::bat_swarm)
         && (stab_attempt || you.hp * 2 <= you.hp_max)
-        && mon->has_blood()
-        && actor_is_susceptible_to_vampirism(*mon)
-        && adjacent(you.pos(), mon->pos()))
+        && adjacent(you.pos(), mon->pos())
+        && !mons_class_flag(defender->type, M_ACID_SPLASH))
     {
         // Stabs always heal, but thirsty attacks have a shapeshifting-based
         // chance to heal.
         if (!stab_attempt && !x_chance_in_y(10, cur_form()->get_level(1) + 10))
             return;
 
-        if (mon->alive())
+        const bool can_heal = actor_is_susceptible_to_vampirism(*mon);
+        const bool can_enthrall = stab_attempt && !mon->is_summoned()
+                                  && !mon->alive()
+                                  && mon->holiness() & (MH_NATURAL | MH_PLANT | MH_DEMONIC);
+
+        if (can_heal && !can_enthrall)
         {
-            mprf("You sink your fangs into %s and drink %s blood.",
+            mprf("You sink your fangs into %s and drink %s %s.",
                     mon->name(DESC_THE, true).c_str(),
-                    mon->pronoun(PRONOUN_POSSESSIVE).c_str());
+                    mon->pronoun(PRONOUN_POSSESSIVE).c_str(),
+                    mon->blood_name().c_str());
         }
-        else
+        else if (can_enthrall)
         {
             mprf("You sink your fangs into %s and drain %s dry!",
                     mon->name(DESC_THE, true).c_str(),
@@ -578,11 +583,14 @@ void melee_attack::do_vampire_lifesteal()
                 mon->props[VAMPIRIC_THRALL_KEY] = true;
         }
 
-        int heal = random2(damage_done);
-        if (heal > 0 && you.hp < you.hp_max && !you.duration[DUR_DEATHS_DOOR])
+        if (can_heal)
         {
-            you.heal(heal);
-            canned_msg(MSG_GAIN_HEALTH);
+            int heal = random2(damage_done);
+            if (heal > 0 && you.hp < you.hp_max && !you.duration[DUR_DEATHS_DOOR])
+            {
+                you.heal(heal);
+                canned_msg(MSG_GAIN_HEALTH);
+            }
         }
     }
 }
@@ -607,7 +615,7 @@ static void _apply_flux_contam(monster &m)
             if (!m.alive())
                 return;
         }
-        m.malmutate("");
+        m.malmutate(&you);
         m.del_ench(ENCH_CONTAM, true);
         return;
     }
@@ -768,6 +776,11 @@ bool melee_attack::handle_phase_hit()
             defender->as_monster()->update_ench(agony);
     }
 
+    // Must happen before unrand effects, since we need to call this even (or
+    // especially!) if the monster died.
+    if (damage_done > 0)
+        do_vampire_lifesteal();
+
     if (check_unrand_effects())
         return false;
 
@@ -776,7 +789,6 @@ bool melee_attack::handle_phase_hit()
 
     if (damage_done > 0)
     {
-        do_vampire_lifesteal();
         apply_black_mark_effects();
         do_ooze_engulf();
         try_parry_disarm();
@@ -2068,8 +2080,8 @@ bool melee_attack::player_aux_apply(unarmed_attack_type atk)
         {
             player_announce_aux_hit();
 
-            if (damage_brand == SPWPN_ACID)
-                defender->acid_corrode(3);
+            if (damage_brand == SPWPN_ACID && !one_chance_in(3))
+                defender->corrode(&you);
 
             if (damage_brand == SPWPN_VENOM && coinflip())
                 poison_monster(defender->as_monster(), &you);
@@ -2710,23 +2722,13 @@ void melee_attack::attacker_sustain_passive_damage()
     if (!mons_class_flag(defender->type, M_ACID_SPLASH))
         return;
 
-    if (attacker->res_acid() >= 3)
+    if (attacker->res_corr() >= 3)
         return;
 
     if (!adjacent(attacker->pos(), defender->pos()) || is_riposte)
         return;
 
-    const int acid_strength = resist_adjust_damage(attacker, BEAM_ACID, 5);
-
-    // Spectral weapons can't be corroded (but can take acid damage).
-    const bool avatar = attacker->is_monster()
-                        && mons_is_avatar(attacker->as_monster()->type);
-
-    if (!avatar)
-    {
-        if (x_chance_in_y(acid_strength + 1, 30))
-            attacker->corrode_equipment();
-    }
+    const int dmg = resist_adjust_damage(attacker, BEAM_ACID, roll_dice(1, 5));
 
     if (attacker->is_player())
         mpr(you.hands_act("burn", "!"));
@@ -2735,8 +2737,11 @@ void melee_attack::attacker_sustain_passive_damage()
         simple_monster_message(*attacker->as_monster(),
                                " is burned by acid!");
     }
-    attacker->hurt(defender, roll_dice(1, acid_strength), BEAM_ACID,
+    attacker->hurt(defender, dmg, BEAM_ACID,
                    KILLED_BY_ACID);
+
+    if (attacker->alive() && one_chance_in(5))
+        attacker->corrode(defender);
 }
 
 int melee_attack::staff_damage(stave_type staff) const
@@ -2852,7 +2857,7 @@ bool melee_attack::apply_staff_damage()
     inflict_damage(dam, flavour);
     if (dam > 0)
     {
-        defender->expose_to_element(flavour, 2);
+        defender->expose_to_element(flavour, 2, attacker);
         // Poisoning from the staff of alchemy should happen after damage.
         if (defender->alive() && flavour == BEAM_POISON)
             defender->poison(attacker, 2);
@@ -3283,7 +3288,7 @@ void melee_attack::mons_apply_attack_flavour()
             _print_resist_messages(defender, base_damage, BEAM_COLD);
         }
 
-        defender->expose_to_element(BEAM_COLD, 2);
+        defender->expose_to_element(BEAM_COLD, 2, attacker);
         break;
 
     case AF_ELEC:
@@ -3458,7 +3463,7 @@ void melee_attack::mons_apply_attack_flavour()
         break;
 
     case AF_CORRODE:
-        defender->corrode_equipment(atk_name(DESC_THE).c_str());
+        defender->corrode(attacker, atk_name(DESC_THE).c_str());
         break;
 
     case AF_RIFT:
@@ -3952,7 +3957,7 @@ void melee_attack::do_passive_freeze()
 
         if (mon->alive())
         {
-            mon->expose_to_element(BEAM_COLD, orig_hurted);
+            mon->expose_to_element(BEAM_COLD, orig_hurted, &you);
             print_wounds(*mon);
         }
     }

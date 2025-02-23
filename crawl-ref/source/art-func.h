@@ -819,7 +819,7 @@ static void _PLUTONIUM_SWORD_melee_effects(item_def* weapon,
         }
 
         if (defender->is_monster())
-            defender->malmutate("the plutonium sword");
+            defender->malmutate(attacker, "the plutonium sword");
         else
         {
             mpr(random_choose("Your body deforms painfully.",
@@ -973,7 +973,7 @@ static void _ELEMENTAL_STAFF_melee_effects(item_def*, actor* attacker,
     defender->hurt(attacker, bonus_dam, flavour);
 
     if (defender->alive() && flavour != BEAM_NONE)
-        defender->expose_to_element(flavour, 2);
+        defender->expose_to_element(flavour, 2, attacker);
 }
 
 ///////////////////////////////////////////////////
@@ -1388,7 +1388,7 @@ static void _THERMIC_ENGINE_melee_effects(item_def* weapon, actor* attacker,
 
         defender->hurt(attacker, bonus_dam, BEAM_COLD);
         if (defender->alive())
-            defender->expose_to_element(BEAM_COLD, 2);
+            defender->expose_to_element(BEAM_COLD, 2, attacker);
     }
 }
 
@@ -1899,4 +1899,9 @@ static void _VAINGLORY_equip(item_def */*item*/, bool *show_msgs, bool unmeld)
 {
     if (!unmeld)
         _equip_mpr(show_msgs, "You feel supremely confident.");
+}
+
+static void _VAINGLORY_unequip(item_def */*item*/, bool */*show_msgs*/)
+{
+    invalidate_agrid(true);
 }

@@ -712,7 +712,7 @@ public:
     bool can_drink(bool temp = true) const;
     bool is_stationary() const override;
     bool is_motile() const;
-    bool malmutate(const string &reason) override;
+    bool malmutate(const actor* source, const string &reason = "") override;
     bool polymorph(int pow, bool allow_immobile = true) override;
     void backlight();
     void banish(const actor* /*agent*/, const string &who = "", const int power = 0,
@@ -722,6 +722,7 @@ public:
                   bool wizard_tele = false) override;
 
     void expose_to_element(beam_type element, int strength = 0,
+                           const actor* source = nullptr,
                            bool slow_cold_blood = true) override;
     void god_conduct(conduct_type thing_done, int level) override;
 
@@ -739,9 +740,9 @@ public:
     bool heal(int amount) override;
     bool drain(const actor *, bool quiet = false, int pow = 3) override;
     void splash_with_acid(actor *evildoer) override;
-    void acid_corrode(int acid_strength) override;
-    bool corrode_equipment(const char* corrosion_source = "the acid",
-                           int degree = 1) override;
+    bool corrode(const actor* source = nullptr,
+                 const char* corrosion_msg = "the acid",
+                 int amount = 4) override;
     void sentinel_mark(bool trap = false);
     int hurt(const actor *attacker, int amount,
              beam_type flavour = BEAM_MISSILE,
@@ -766,7 +767,7 @@ public:
     bool is_unbreathing() const override;
     bool is_insubstantial() const override;
     bool is_amorphous() const override;
-    int res_acid() const override;
+    int res_corr() const override;
     bool res_damnation() const override { return false; };
     int res_fire() const override;
     int res_steam() const override;
@@ -788,7 +789,6 @@ public:
     string no_tele_reason(bool blink = false, bool temp = true) const;
     bool antimagic_susceptible() const override;
 
-    bool res_corr(bool allow_random = true, bool temp = true) const override;
     bool clarity(bool items = true) const override;
     bool faith(bool items = true) const override;
     bool reflection(bool items = true) const override;
@@ -1035,7 +1035,6 @@ bool player_likes_water(bool permanently = false);
 
 int player_res_cold(bool allow_random = true, bool temp = true,
                     bool items = true);
-int player_res_acid(bool items = true);
 int player_res_electricity(bool allow_random = true, bool temp = true,
                            bool items = true);
 int player_res_fire(bool allow_random = true, bool temp = true,
@@ -1045,6 +1044,8 @@ int player_res_steam(bool allow_random = true, bool temp = true,
                      bool items = true);
 int player_res_poison(bool allow_random = true, bool temp = true,
                       bool items = true, bool forms = true);
+int player_res_corrosion(bool allow_random = true, bool temp = true,
+                         bool items = true);
 int player_willpower(bool temp = true);
 
 int player_shield_class(int scale = 1, bool random = true,

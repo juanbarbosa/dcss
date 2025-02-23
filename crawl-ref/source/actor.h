@@ -170,7 +170,7 @@ public:
     virtual bool has_blood(bool temp = true) const = 0;
     virtual bool has_bones(bool temp = true) const = 0;
     virtual bool is_stationary() const = 0;
-    virtual bool malmutate(const string &reason) = 0;
+    virtual bool malmutate(const actor* source, const string &reason = "") = 0;
     virtual bool polymorph(int pow, bool allow_immobile = true) = 0;
     virtual bool drain(const actor *agent, bool quiet = false,
                        int pow = 3) = 0;
@@ -202,11 +202,12 @@ public:
     virtual bool strip_willpower(actor *attacker, int dur,
                                  bool quiet = false) = 0;
     virtual void expose_to_element(beam_type element, int strength = 0,
+                                   const actor* source = nullptr,
                                    bool slow_cold_blood = true) = 0;
     virtual void splash_with_acid(actor *evildoer) = 0;
-    virtual void acid_corrode(int acid_strength) = 0;
-    virtual bool corrode_equipment(const char* corrosion_source = "the acid",
-                                   int degree = 1) = 0;
+    virtual bool corrode(const actor* source = nullptr,
+                         const char* corrosion_msg = "the acid",
+                         int amount = 4) = 0;
     virtual bool resists_dislodge(string /*event*/ = "") const { return false; };
 
     virtual bool can_hibernate(bool holi_only = false,
@@ -259,7 +260,7 @@ public:
     virtual bool is_unbreathing() const = 0;
     virtual bool is_insubstantial() const = 0;
     virtual bool is_amorphous() const = 0;
-    virtual int res_acid() const = 0;
+    virtual int res_corr() const = 0;
     virtual bool res_damnation() const = 0;
     virtual int res_fire() const = 0;
     virtual int res_steam() const = 0;
@@ -284,7 +285,6 @@ public:
     int inaccuracy_penalty() const;
     virtual bool antimagic_susceptible() const = 0;
 
-    virtual bool res_corr(bool /*allow_random*/ = true, bool temp = true) const;
     bool has_notele_item(vector<const item_def *> *matches = nullptr) const;
     virtual bool stasis() const = 0;
     virtual bool cloud_immune(bool items = true) const;

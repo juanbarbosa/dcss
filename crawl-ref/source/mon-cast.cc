@@ -1789,6 +1789,7 @@ static int _mons_power_hd_factor(spell_type spell)
         case SPELL_FREEZE:
         case SPELL_FULMINANT_PRISM:
         case SPELL_IGNITE_POISON:
+        case SPELL_ARCJOLT:
             return 8;
 
         case SPELL_MONSTROUS_MENAGERIE:
@@ -3983,7 +3984,7 @@ static void _corrupting_pulse(monster *mons)
         if (m && cell_see_cell(mons->pos(), *ri, LOS_SOLID_SEE)
             && !mons_aligned(mons, m))
         {
-            m->corrupt();
+            m->malmutate(mons);
         }
     }
 }
@@ -4651,6 +4652,10 @@ static monster_spells _find_usable_spells(monster &mons)
         // it never will.
         || t.spell == SPELL_DIG;
     });
+
+    // Erase zero-frequency spells
+    erase_if(hspell_pass, [](const mon_spell_slot &t) {
+        return t.freq == 0;});
 
     return hspell_pass;
 }
@@ -5459,7 +5464,7 @@ static bool _mons_cast_freeze(monster* mons)
 
     if (target->alive())
     {
-        target->expose_to_element(BEAM_COLD, damage);
+        target->expose_to_element(BEAM_COLD, damage, mons);
         _whack(*mons, *target);
     }
 
@@ -7844,7 +7849,7 @@ void mons_cast(monster* mons, bolt pbolt, spell_type spell_cast,
     case SPELL_ENTROPIC_WEAVE:
         ASSERT(foe);
         flash_tile(foe->pos(), YELLOW, 120, TILE_BOLT_ENTROPIC_WEAVE);
-        foe->corrode_equipment("the entropic weave");
+        foe->corrode(mons, "the entropic weave");
         return;
 
     case SPELL_SUMMON_EXECUTIONERS:

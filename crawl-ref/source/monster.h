@@ -336,6 +336,7 @@ public:
     string hand_name(bool plural, bool *can_plural = nullptr) const override;
     string foot_name(bool plural, bool *can_plural = nullptr) const override;
     string arm_name(bool plural, bool *can_plural = nullptr) const override;
+    string blood_name() const;
 
     bool fumbles_attack() override;
 
@@ -356,13 +357,13 @@ public:
     bool has_blood(bool temp = true) const override;
     bool has_bones(bool temp = true) const override;
     bool is_stationary() const override;
-    bool malmutate(const string &/*reason*/) override;
-    void corrupt();
+    bool malmutate(const actor* source, const string& reason = "") override;
     bool polymorph(int pow, bool allow_immobile = true) override;
     bool polymorph(poly_power_type power = PPT_SAME);
     void banish(const actor *agent, const string &who = "", const int power = 0,
                 bool force = false) override;
     void expose_to_element(beam_type element, int strength = 0,
+                           const actor* source = nullptr,
                            bool slow_cold_blood = true) override;
 
     monster_type mons_species(bool zombie_base = false) const override;
@@ -391,14 +392,13 @@ public:
     int res_foul_flame() const override;
     int res_negative_energy(bool intrinsic_only = false) const override;
     bool res_torment() const override;
-    int res_acid() const override;
+    int res_corr() const override;
     bool res_polar_vortex() const override;
     bool res_petrify(bool /*temp*/ = true) const override;
     bool res_constrict() const override;
     resists_t all_resists() const;
     int willpower() const override;
     bool no_tele(bool blink = false, bool /*temp*/ = true) const override;
-    bool res_corr(bool /*allow_random*/ = true, bool temp = true) const override;
     bool antimagic_susceptible() const override;
 
     bool stasis() const override;
@@ -483,9 +483,9 @@ public:
     void confuse(actor *, int strength) override;
     bool drain(const actor *, bool quiet = false, int pow = 3) override;
     void splash_with_acid(actor *evildoer) override;
-    void acid_corrode(int /*acid_strength*/) override;
-    bool corrode_equipment(const char* corrosion_source = "the acid",
-                           int degree = 1) override;
+    bool corrode(const actor* source = nullptr,
+                 const char* corrision_msg = "the acid",
+                 int amount = 4) override;
     int hurt(const actor *attacker, int amount,
              beam_type flavour = BEAM_MISSILE,
              kill_method_type kill_type = KILLED_BY_MONSTER,

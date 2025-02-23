@@ -748,8 +748,10 @@ static bool _vampire_make_thrall(monster* mons)
 
     mons->hit_points = mons->max_hit_points;
     mons->flags |= MF_FAKE_UNDEAD;
+    mons->props.erase(VAMPIRIC_THRALL_KEY);
 
-    if (mons->is_actual_spellcaster())
+    // Includes actual spellcasters and those with magical abilities.
+    if (mons->antimagic_susceptible())
     {
         mons->spells.push_back({SPELL_VAMPIRIC_DRAINING, 50, MON_SPELL_WIZARD});
         mons->props[CUSTOM_SPELLS_KEY] = true;
@@ -1044,6 +1046,9 @@ static bool _monster_avoided_death(monster* mons, killer_type killer,
     // Before the hp check since this should not care about the power of the
     // finishing blow
     if (lost_soul_revive(*mons, killer))
+        return true;
+
+    if (mons->type == MONS_NAMELESS_REVENANT && pyrrhic_recollection(*mons))
         return true;
 
     // Yredelemnul special.

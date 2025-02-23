@@ -84,8 +84,8 @@ enum enchant_type
 #if TAG_MAJOR_VERSION == 34
     ENCH_WITHDRAWN,
     ENCH_ATTACHED,
-#endif
     ENCH_LIFE_TIMER,     // Minimum time demonic guardian must exist.
+#endif
     ENCH_FLIGHT,
     ENCH_LIQUEFYING,
     ENCH_POLAR_VORTEX,
@@ -239,6 +239,7 @@ enum enchant_type
     ENCH_DEEP_SLEEP,
     ENCH_DROWSY,
     ENCH_VAMPIRE_THRALL,
+    ENCH_PYRRHIC_RECOLLECTION,
     // Update enchant_names[] in mon-ench.cc when adding or removing
     // enchantments.
     NUM_ENCHANTMENTS
