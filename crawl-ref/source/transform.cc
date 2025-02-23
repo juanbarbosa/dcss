@@ -1635,6 +1635,9 @@ static void _enter_form(int pow, transformation which_trans, bool scale_hp = tru
     if (you.has_innate_mutation(MUT_MERTAIL))
         merfolk_check_swimming(env.grid(you.pos()), false);
 
+    if (is_artefact(you.active_talisman))
+        equip_artefact_effect(you.active_talisman, nullptr, false);
+
     // In the case where we didn't actually meld any gear (but possibly used
     // a new artefact talisman or were forcibly polymorphed away from one),
     // refresh equipment properties.
@@ -1694,6 +1697,7 @@ bool transform(int pow, transformation which_trans, bool involuntary,
         return false;
     }
 
+    // Vampire should shift in and out of bat swarm without reverting to fully untransformed in the middle
     // This must occur before the untransform().
     if (you.form == which_trans)
     {
@@ -1719,8 +1723,8 @@ bool transform(int pow, transformation which_trans, bool involuntary,
     }
 
     if (you.form != transformation::none
-        && (!(you.form == transformation::vampire || you.form == transformation::bat_swarm)
-            && !(which_trans == transformation::vampire || which_trans == transformation::bat_swarm)))
+        && !((you.form == transformation::vampire || you.form == transformation::bat_swarm)
+               && (which_trans == transformation::vampire || which_trans == transformation::bat_swarm)))
     {
         untransform(true, !using_talisman);
     }
@@ -1744,6 +1748,7 @@ bool transform(int pow, transformation which_trans, bool involuntary,
 void untransform(bool skip_move, bool scale_hp)
 {
     const transformation old_form = you.form;
+    const bool was_flying = you.airborne();
 
     if (!form_can_wield(old_form))
         you.received_weapon_warning = false;
@@ -1832,7 +1837,8 @@ void untransform(bool skip_move, bool scale_hp)
 
     // Called so that artprop flight on talismans specifically ends properly.
     // (Won't land the player if anything else is keeping them afloat.)
-    land_player();
+    if (was_flying)
+        land_player();
 
     you.turn_is_over = true;
     if (you.transform_uncancellable)
@@ -1956,8 +1962,6 @@ void set_default_form(transformation t, const item_def *source)
     if (source)
     {
         you.active_talisman = *source; // iffy
-        if (is_artefact(you.active_talisman))
-            equip_artefact_effect(you.active_talisman, nullptr, false);
         item_skills(you.active_talisman, you.skills_to_show);
     }
 
@@ -1965,12 +1969,6 @@ void set_default_form(transformation t, const item_def *source)
     // talisman might count as a useless item (the you.form != you.default_form
     // check in cannot_evoke_item_reason)
     you.default_form = t;
-
-    // If we're swapping to a different talisman of the same type, while in that
-    // form aready, we will have skipped most of the equipment handling code,
-    // so be sure to update for any artprop changes.
-    if (you.form == t)
-        you.equipment.update();
 }
 
 int form_base_movespeed(transformation tran)
