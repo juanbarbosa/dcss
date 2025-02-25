@@ -10,6 +10,8 @@
 #include <list>
 #include <memory>
 #include <vector>
+#include <unordered_set>
+#include <deque>
 
 #include "actor.h"
 #include "attribute-type.h"
@@ -37,6 +39,8 @@
 #include "uncancellable-type.h"
 #include "unique-creature-list-type.h"
 #include "unique-item-status-type.h"
+
+#include "monster-type.h"
 
 #define ICY_ARMOUR_KEY "ozocubu's_armour_pow"
 #define BARBS_MOVE_KEY "moved_with_barbs_status"
@@ -474,6 +478,8 @@ public:
     // Number of viewport refreshes.
     unsigned int frame_no;
 
+    unordered_set<short> defeated_monsters;
+    deque<std::reference_wrapper<monster>> monster_xp_queue;
 
     // ---------------------
     // The save file itself.
@@ -1085,8 +1091,11 @@ void display_char_status();
 void forget_map(bool rot = false);
 
 int get_exp_progress();
+unsigned int gain_exp(monster& monster, unsigned int exp_gained);
 unsigned int gain_exp(unsigned int exp_gained);
 void apply_exp();
+
+unsigned int grant_queue_xp();
 
 int xp_to_level_diff(int xp, int scale=1);
 

@@ -258,16 +258,17 @@ static int _calc_player_experience(const monster* mons)
     return experience;
 }
 
-static void _give_player_experience(int experience, killer_type killer,
+static void _give_player_experience(monster& mons, int experience, killer_type killer,
                                     bool pet_kill, bool was_visible,
                                     xp_tracking_type xp_tracking)
 {
-    mpr("DISCORD TODO: XP Modification Code goes here");
+    //mpr("DISCORD TODO: XP Modification Code goes here");
     
     if (experience <= 0 || crawl_state.game_is_arena())
         return;
 
-    const unsigned int exp_gain = gain_exp(experience);
+    mprf("Juanchooo mon-death.cc _give_player_experience success for mon with id: %d and name: %s", mons.type, mons.mname.c_str());
+    const unsigned int exp_gain = gain_exp(mons, experience);
 
     kill_category kc =
             (killer == KILL_YOU || killer == KILL_YOU_MISSILE) ? KC_YOU :
@@ -766,7 +767,8 @@ static bool _vampire_make_thrall(monster* mons)
     mons->mark_summoned(MON_SUMM_THRALL, 0, false);
     mons->add_ench(mon_enchant(ENCH_SUMMON_TIMER, 0, &you, dur));
     mons_att_changed(mons);
-    gain_exp(exper_value(*mons));
+    mprf("Juanchooo mon-death.cc _vampire_make_thrall for mon %s", mons->full_name(DESC_NONE).c_str());
+    gain_exp(*mons, exper_value(*mons));
 
     // End constriction.
     mons->stop_constricting_all();
@@ -3227,7 +3229,7 @@ item_def* monster_die(monster& mons, killer_type killer,
 
     if (mount_death)
     {
-        _give_player_experience(player_xp, killer, pet_kill,
+        _give_player_experience(mons, player_xp, killer, pet_kill,
                                 was_visible, mons.xp_tracking);
         crawl_state.dec_mon_acting(&mons);
 
@@ -3271,7 +3273,7 @@ item_def* monster_die(monster& mons, killer_type killer,
         mons.destroy_inventory();
     }
 
-    mpr("DISCORD TODO: Essence code goes here");
+    //mpr("DISCORD TODO: Essence code goes here");
 
     if (leaves_corpse && corpse)
     {
@@ -3341,7 +3343,7 @@ item_def* monster_die(monster& mons, killer_type killer,
 
     if (!mons_reset)
     {
-        _give_player_experience(player_xp, killer, pet_kill, was_visible,
+        _give_player_experience(mons, player_xp, killer, pet_kill, was_visible,
                                 mons.xp_tracking);
     }
     return corpse;
