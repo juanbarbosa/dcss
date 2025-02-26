@@ -3650,7 +3650,7 @@ void mons_pacify(monster& mon, mon_attitude_type att, bool no_xp)
         && !testbits(mon.flags, MF_NO_REWARD))
     {
         // Give the player full XP.
-        gain_exp(mon, exper_value(mon));
+        gain_exp(mon.type, exper_value(mon));
     }
     mon.flags |= MF_PACIFIED;
 

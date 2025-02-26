@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
     if (!parse_args(argc, argv, true))
     {
         _show_commandline_options_help();
-        return 1;
+        //return 1;
     }
 
     // Init monsters up front - needed to handle the mon_glyph option right.

@@ -99,6 +99,14 @@ class targeter;
 class Delay;
 struct player_save_info;
 
+struct XpEntry {
+    monster_type type;
+    unsigned int exp_gained;
+
+    // Constructor for convenience
+    XpEntry(monster_type t, unsigned int exp) : type(t), exp_gained(exp) {}
+};
+
 int player_stealth();
 
 enum class mutation_activity_type; // in mutation.h
@@ -478,8 +486,8 @@ public:
     // Number of viewport refreshes.
     unsigned int frame_no;
 
-    unordered_set<short> defeated_monsters;
-    deque<std::reference_wrapper<monster>> monster_xp_queue;
+    unordered_set<monster_type> defeated_monsters;
+    deque<XpEntry> monster_xp_queue;
 
     // ---------------------
     // The save file itself.
@@ -1091,7 +1099,7 @@ void display_char_status();
 void forget_map(bool rot = false);
 
 int get_exp_progress();
-unsigned int gain_exp(monster& monster, unsigned int exp_gained);
+unsigned int gain_exp(monster_type monster, unsigned int exp_gained);
 unsigned int gain_exp(unsigned int exp_gained);
 void apply_exp();
 

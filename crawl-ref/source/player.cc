@@ -2396,15 +2396,14 @@ static void _handle_god_wrath(int exp)
     }
 }
 
-unsigned int gain_exp(monster& mons, unsigned int exp_gained)
+unsigned int gain_exp(monster_type m_type, unsigned int exp_gained)
 {
     //const monsterentry* e = mons.find_monsterentry();
-    //mprf("Juanchooo player.cc gain_exp for mon %s", e->name);
 
     if (crawl_state.game_is_arena())
         return 0;
 
-    you.monster_xp_queue.push_back(mons);
+    you.monster_xp_queue.emplace_back(m_type, exp_gained);
 
     you.experience_pool += exp_gained;
 
@@ -2435,27 +2434,25 @@ unsigned int gain_exp(unsigned int exp_gained)
 }
 
 unsigned int grant_queue_xp() {
-    unordered_set<short> defeated_set = you.defeated_monsters;
-    deque<std::reference_wrapper<monster>> monsterQueue = you.monster_xp_queue;
+    unordered_set<monster_type>& defeated_set = you.defeated_monsters;
+    deque<XpEntry>& monsterQueue = you.monster_xp_queue;
     unsigned int xp_to_grant = 0;
     while (!monsterQueue.empty()) {
-        monster& current = monsterQueue.front().get(); // Access the first monster
-        const monsterentry *m = get_monster_data(mons_base_type(current));
-        short id = m->mc;
+        XpEntry current = monsterQueue.front(); // Access the first monster
 
-        if (defeated_set.find(id) == defeated_set.end()) {
-            mprf("Juanchooo player.cc gain_xp success for mon with id: %d and name: %s", id, m->name);
-            defeated_set.insert(id);
-            xp_to_grant += (unsigned int) id;
+        if (defeated_set.find(current.type) == defeated_set.end()) {
+            mprf("player.cc gain_xp success for mon with id: %d", current.type);
+            defeated_set.insert(current.type);
+            xp_to_grant += current.exp_gained;
         } else {
-            mprf("Juanchooo player.cc gain_xp failed for mon with id: %d and name: %s", id, m->name);
+            mprf("player.cc gain_xp failed for mon with id: %d", current.type);
         }
 
         monsterQueue.pop_front(); // keep queue trimmed 
     }
 
     return xp_to_grant;
-}
+} 
 
 void apply_exp()
 {

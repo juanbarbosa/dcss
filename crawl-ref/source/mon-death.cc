@@ -258,7 +258,7 @@ static int _calc_player_experience(const monster* mons)
     return experience;
 }
 
-static void _give_player_experience(monster& mons, int experience, killer_type killer,
+static void _give_player_experience(monster_type m_type, string m_name, int experience, killer_type killer,
                                     bool pet_kill, bool was_visible,
                                     xp_tracking_type xp_tracking)
 {
@@ -267,8 +267,8 @@ static void _give_player_experience(monster& mons, int experience, killer_type k
     if (experience <= 0 || crawl_state.game_is_arena())
         return;
 
-    mprf("Juanchooo mon-death.cc _give_player_experience success for mon with id: %d and name: %s", mons.type, mons.mname.c_str());
-    const unsigned int exp_gain = gain_exp(mons, experience);
+    mprf("mon-death.cc enqueue_player_experience for mon with id: %d and name: %s", m_type, m_name.c_str());
+    const unsigned int exp_gain = gain_exp(m_type, experience);
 
     kill_category kc =
             (killer == KILL_YOU || killer == KILL_YOU_MISSILE) ? KC_YOU :
@@ -767,8 +767,7 @@ static bool _vampire_make_thrall(monster* mons)
     mons->mark_summoned(MON_SUMM_THRALL, 0, false);
     mons->add_ench(mon_enchant(ENCH_SUMMON_TIMER, 0, &you, dur));
     mons_att_changed(mons);
-    mprf("Juanchooo mon-death.cc _vampire_make_thrall for mon %s", mons->full_name(DESC_NONE).c_str());
-    gain_exp(*mons, exper_value(*mons));
+    gain_exp(mons->type, exper_value(*mons));
 
     // End constriction.
     mons->stop_constricting_all();
@@ -2284,6 +2283,8 @@ item_def* monster_die(monster& mons, killer_type killer,
                       int killer_index, bool silent, bool mount_death)
 {
     ASSERT(!invalid_monster(&mons));
+    monster_type m_type = mons.type;
+    string m_name = mons.name(DESC_PLAIN);
 
     // trying to die again after scheduling an avoided_death fineff
     if (testbits(mons.flags, MF_PENDING_REVIVAL))
@@ -3229,7 +3230,7 @@ item_def* monster_die(monster& mons, killer_type killer,
 
     if (mount_death)
     {
-        _give_player_experience(mons, player_xp, killer, pet_kill,
+        _give_player_experience(m_type, m_name, player_xp, killer, pet_kill,
                                 was_visible, mons.xp_tracking);
         crawl_state.dec_mon_acting(&mons);
 
@@ -3343,7 +3344,7 @@ item_def* monster_die(monster& mons, killer_type killer,
 
     if (!mons_reset)
     {
-        _give_player_experience(mons, player_xp, killer, pet_kill, was_visible,
+        _give_player_experience(m_type, m_name, player_xp, killer, pet_kill, was_visible,
                                 mons.xp_tracking);
     }
     return corpse;
