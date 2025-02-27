@@ -1,0 +1,4 @@
+ID,Name,Xpgranted,HP,SpriteUsed,CanWeapon
+0,goblin,1,5,59,1
+1,wolf,1,7,225,0
+2,giant,3,25,14,1

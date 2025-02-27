@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28010.2046
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35506.116 d17.12
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "crawl", "crawl.vcxproj", "{3189AF12-90EF-4D3E-BFEC-4AB90D7D32DA}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -54,6 +54,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sqlite", "..\contrib\MSVC\sqlite.vcxproj", "{5783572B-479A-4EE8-8F16-1FDB24DDD1A0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib", "..\contrib\MSVC\zlib.vcxproj", "{3D9F174B-2909-4834-A3D7-892E8D442A5D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MainSRC(taly)", "..\..\..\..\BehelaTester\XPrevamp\MainSRC\MainSRC.vcxproj", "{58C4DB04-3F76-42DF-80A8-7C0A74C20710}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -259,6 +261,22 @@ Global
 		{3D9F174B-2909-4834-A3D7-892E8D442A5D}.Release Tiles|Win32.Build.0 = LIB Release|Win32
 		{3D9F174B-2909-4834-A3D7-892E8D442A5D}.Release Tiles|x64.ActiveCfg = LIB Release|x64
 		{3D9F174B-2909-4834-A3D7-892E8D442A5D}.Release Tiles|x64.Build.0 = LIB Release|x64
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Debug Console|Win32.ActiveCfg = Debug|Win32
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Debug Console|Win32.Build.0 = Debug|Win32
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Debug Console|x64.ActiveCfg = Debug|x64
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Debug Console|x64.Build.0 = Debug|x64
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Debug Tiles|Win32.ActiveCfg = Debug|Win32
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Debug Tiles|Win32.Build.0 = Debug|Win32
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Debug Tiles|x64.ActiveCfg = Debug|x64
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Debug Tiles|x64.Build.0 = Debug|x64
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Release Console|Win32.ActiveCfg = Release|Win32
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Release Console|Win32.Build.0 = Release|Win32
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Release Console|x64.ActiveCfg = Release|x64
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Release Console|x64.Build.0 = Release|x64
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Release Tiles|Win32.ActiveCfg = Release|Win32
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Release Tiles|Win32.Build.0 = Release|Win32
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Release Tiles|x64.ActiveCfg = Release|x64
+		{58C4DB04-3F76-42DF-80A8-7C0A74C20710}.Release Tiles|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
