@@ -347,7 +347,7 @@ if you.race() == "Mummy" then
     return "velvet-covered"
 elseif you.mutation('beak') > 0 then
     return "pearl-beaked"
-elseif you.transform() == "death"
+elseif you.transform() == "death" then
     return "well-preserved"
 elseif you.transform() == "statue" then
     return "marble-toed"
@@ -2505,6 +2505,10 @@ Walk
 Earwax
 
 Millenium
+
+Holy
+
+Unholy
 %%%%
 # Lowercase words
 _crazy_yiuf_wordlist2_
@@ -2528,6 +2532,10 @@ bush
 tired
 
 snail
+
+chicken
+
+hippo
 
 shrimp
 
@@ -2568,6 +2576,10 @@ tea
 light
 
 dark
+
+lumber
+
+ingot
 
 water
 
@@ -2618,6 +2630,10 @@ mobile
 senile
 
 canine
+
+feline
+
+bovine
 
 disdain
 
@@ -2990,6 +3006,8 @@ w:50
 @The_monster@ says, "I saw some yaktaurs earlier, but I bolted."
 
 @The_monster@ says, "I saw a dragon earlier, but I didn't get too close - it seemed pretty mercurial."
+
+@The_monster@ says, "Why are there poltergeists guarding this place, but not the Crypt?"
 %%%%
 Crypt Donald
 
@@ -3145,6 +3163,7 @@ w:25
 @The_monster@ says, "You have the Orb. Was it worth it?"
 
 ######################################################################## GODS #
+%%%%
 Zin Donald
 
 w:50

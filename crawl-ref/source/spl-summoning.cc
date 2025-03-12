@@ -788,8 +788,7 @@ static void _animate_weapon(int pow, actor* target)
     ASSERT(montarget->inv[wp_slot] != NON_ITEM);
     ASSERT(&env.item[montarget->inv[wp_slot]] == wpn);
 
-    montarget->unequip(*(montarget->mslot_item(wp_slot)), false, true);
-    montarget->inv[wp_slot] = NON_ITEM;
+    montarget->unequip(wp_slot, false, true);
 
     // Find out what our god thinks before killing the item.
     conduct_type why = god_hates_item_handling(*wpn);
@@ -1080,26 +1079,86 @@ bool can_cast_malign_gateway()
     return count_malign_gateways() < 1;
 }
 
+static bool _is_malign_gateway_summoning_spot(const actor& caster,
+    const coord_def location,
+    bool targeting)
+{
+    if (!in_bounds(location)
+        || !feat_is_malign_gateway_suitable(env.grid(location)))
+    {
+        return false;
+    }
+
+    const actor* const creature = actor_at(location);
+    if (creature)
+    {
+        if (!targeting)
+            return false;
+
+        if (creature->visible_to(&caster))
+            return false;
+    }
+
+    if (targeting)
+    {
+        for (adjacent_iterator ai(location); ai; ++ai)
+        {
+            const map_cell& map_info = env.map_knowledge(*ai);
+            if (map_info.seen() && feat_is_solid(map_info.feat()))
+                return false;
+        }
+    }
+    else if (count_neighbours_with_func(location, &feat_is_solid) != 0)
+        return false;
+
+    if (!caster.see_cell_no_trans(location))
+        return false;
+
+    return true;
+}
+
+bool is_gateway_target(const actor& caster, coord_def location)
+{
+    const coord_def delta = location - caster.pos();
+
+    // location is to close
+    if (delta.rdist() < 2)
+        return false;
+
+    int abs_x = abs(delta.x);
+    int abs_y = abs(delta.y);
+
+    // Monster range of vision is equal to player range of vision, so this
+    // is accurate for mosters to.
+    const int current_vision = you.current_vision;
+
+    // location is to far
+    if (abs_x > current_vision || abs_y > current_vision)
+        return false;
+
+    return _is_malign_gateway_summoning_spot(caster, location, true);
+}
+
 coord_def find_gateway_location(actor* caster)
 {
     vector<coord_def> points;
 
-    for (coord_def delta : Compass)
+    // Monster range of vision is equal to player range of vision, so this
+    // is accurate for mosters to.
+    const int current_vision = you.current_vision;
+
+    for (int x = -current_vision; x <= current_vision; ++x)
     {
-        coord_def test = coord_def(-1, -1);
-
-        for (int t = 0; t < 11; t++)
+        for (int y = -current_vision; y <= current_vision; ++y)
         {
-            test = caster->pos() + (delta * (2+t));
-            if (!in_bounds(test) || !feat_is_malign_gateway_suitable(env.grid(test))
-                || actor_at(test)
-                || count_neighbours_with_func(test, &feat_is_solid) != 0
-                || !caster->see_cell_no_trans(test))
-            {
+            const coord_def delta{ x, y };
+            // location is to close
+            if (delta.rdist() < 2)
                 continue;
-            }
 
-            points.push_back(test);
+            const coord_def test = caster->pos() + delta;
+            if (_is_malign_gateway_summoning_spot(*caster, test, false))
+                points.push_back(test);
         }
     }
 
@@ -2012,12 +2071,52 @@ spret cast_fulminating_prism(actor* caster, int pow, const coord_def& where,
     return spret::success;
 }
 
-monster* find_spectral_weapon(const actor* agent)
+monster* find_spectral_weapon(const item_def& weapon)
 {
-    if (agent->props.exists(SPECTRAL_WEAPON_KEY))
-        return monster_by_mid(agent->props[SPECTRAL_WEAPON_KEY].get_int());
+    if (weapon.props.exists(SPECTRAL_WEAPON_KEY))
+        return monster_by_mid(weapon.props[SPECTRAL_WEAPON_KEY].get_int());
     else
         return nullptr;
+}
+
+static bool _is_item_for_spectral_weapon(item_def* weapon, mid_t mid)
+{
+    return weapon
+           && weapon->props.exists(SPECTRAL_WEAPON_KEY)
+           && (mid_t)weapon->props[SPECTRAL_WEAPON_KEY].get_int() == mid;
+}
+
+static item_def* _find_spectral_weapon_item(const monster& mons)
+{
+    actor *owner = actor_by_mid(mons.summoner);
+    if (!owner)
+        return nullptr;
+
+    if (owner->is_player())
+    {
+        vector<item_def*> weapons = you.equipment.get_slot_items(SLOT_WEAPON);
+        for (item_def* weapon : weapons)
+        {
+            if (_is_item_for_spectral_weapon(weapon, mons.mid))
+                return weapon;
+        }
+    }
+    else
+    {
+        monster* owning_mons = owner->as_monster();
+
+        item_def* primary_weapon = owning_mons->mslot_item(MSLOT_WEAPON);
+        if (_is_item_for_spectral_weapon(primary_weapon, mons.mid))
+            return primary_weapon;
+
+        item_def* secondary_weapon = owning_mons->mslot_item(MSLOT_ALT_WEAPON);
+        if (mons_wields_two_weapons(*owning_mons)
+            && _is_item_for_spectral_weapon(secondary_weapon, mons.mid))
+        {
+            return secondary_weapon;
+        }
+    }
+    return nullptr;
 }
 
 void end_spectral_weapon(monster* mons, bool killed, bool quiet)
@@ -2026,10 +2125,9 @@ void end_spectral_weapon(monster* mons, bool killed, bool quiet)
     if (!mons)
         return;
 
-    actor *owner = actor_by_mid(mons->summoner);
-
-    if (owner)
-        owner->props.erase(SPECTRAL_WEAPON_KEY);
+    item_def* item = _find_spectral_weapon_item(*mons);
+    if (item)
+        item->props.erase(SPECTRAL_WEAPON_KEY);
 
     if (!quiet && you.can_see(*mons))
         simple_monster_message(*mons, " disappears.");
@@ -2040,10 +2138,79 @@ void end_spectral_weapon(monster* mons, bool killed, bool quiet)
 
 void check_spectral_weapon(actor &agent)
 {
-    if (!agent.triggered_spectral)
-        if (monster* sw = find_spectral_weapon(&agent))
-            end_spectral_weapon(sw, false, false);
-    agent.triggered_spectral = false;
+    if (agent.triggered_spectral)
+    {
+        agent.triggered_spectral = false;
+        return;
+    }
+
+    if (agent.is_player())
+    {
+        vector<item_def*> weapons = you.equipment.get_slot_items(SLOT_WEAPON);
+        for (item_def* weapon : weapons)
+        {
+            monster* sw = find_spectral_weapon(*weapon);
+            if (sw)
+                end_spectral_weapon(sw, false, false);
+        }
+    }
+    else
+    {
+        monster* owning_mons = agent.as_monster();
+
+        item_def* primary_weapon = owning_mons->mslot_item(MSLOT_WEAPON);
+        if (primary_weapon)
+        {
+            monster* sw = find_spectral_weapon(*primary_weapon);
+            if (sw)
+                end_spectral_weapon(sw, false, false);
+        }
+
+        item_def* secondary_weapon = owning_mons->mslot_item(MSLOT_ALT_WEAPON);
+        if (secondary_weapon && mons_wields_two_weapons(*owning_mons))
+        {
+            monster* sw = find_spectral_weapon(*secondary_weapon);
+            if (sw)
+                end_spectral_weapon(sw, false, false);
+        }
+    }
+}
+
+monster* create_spectral_weapon(const actor &agent, coord_def pos,
+                                item_def& weapon)
+{
+    mgen_data mg(MONS_SPECTRAL_WEAPON,
+                 agent.is_player() ? BEH_FRIENDLY
+                                  : SAME_ATTITUDE(agent.as_monster()),
+                 pos,
+                 agent.mindex(),
+                 MG_FORCE_BEH | MG_FORCE_PLACE);
+    mg.set_summoned(&agent, 0);
+    mg.extra_flags |= (MF_NO_REWARD | MF_HARD_RESET);
+    mg.props[TUKIMA_WEAPON] = weapon;
+    mg.props[TUKIMA_POWER] = 50;
+
+    dprf("spawning at %d,%d", pos.x, pos.y);
+
+    monster *mons = create_monster(mg);
+    if (!mons)
+        return nullptr;
+
+    // We successfully made a new one! Kill off the old one,
+    // and don't spam the player with a spawn message.
+    monster* old_weapon = find_spectral_weapon(weapon);
+    if (old_weapon)
+    {
+        mons->flags |= MF_WAS_IN_VIEW | MF_SEEN;
+        end_spectral_weapon(old_weapon, false, true);
+    }
+
+    dprf("spawned at %d,%d", mons->pos().x, mons->pos().y);
+
+    mons->summoner = agent.mid;
+    mons->behaviour = BEH_SEEK; // for display
+    weapon.props[SPECTRAL_WEAPON_KEY].get_int() = mons->mid;
+    return mons;
 }
 
 static void _setup_infestation(bolt &beam, int pow)
@@ -3183,10 +3350,10 @@ void handle_clockwork_bee_spell(int turn)
     if (!targ || !targ->alive() || !targ->visible_to(&you)
         || !you.see_cell(targ->pos()))
     {
-        targ = _get_clockwork_bee_target();
+        monster* new_targ = _get_clockwork_bee_target();
 
         // Couldn't find anything, so just deposit an inert bee near us
-        if (!targ)
+        if (!new_targ)
         {
             mgen_data mg = _pal_data(MONS_CLOCKWORK_BEE_INACTIVE,
                                         random_range(80, 120),
@@ -3201,10 +3368,28 @@ void handle_clockwork_bee_spell(int turn)
                 // reactivate us.
                 if (targ)
                     bee->props[CLOCKWORK_BEE_TARGET].get_int() = targ->mid;
-
-                return;
             }
+            else
+            {
+                // Unable to create inert bee, probably the player was flying
+                // over deep water / lava. Rather than try to work out what
+                // happened, just self destruct.
+                mprf("Without a target and with nowhere to land, your clockwork "
+                     "bee falls apart in a shower of cogs and coils.");
+
+                for (fair_adjacent_iterator ai(you.pos()); ai; ++ai)
+                {
+                    if (!in_bounds(*ai) || cell_is_solid(*ai) || cloud_at(*ai))
+                        continue;
+
+                    place_cloud(CLOUD_DUST, *ai, random_range(3, 5), &you, 0, -1);
+                    break;
+                }
+            }
+            return;
         }
+
+        targ = new_targ;
     }
 
     mgen_data mg = _pal_data(MONS_CLOCKWORK_BEE, random_range(400, 500),
@@ -3706,7 +3891,7 @@ spret cast_platinum_paragon(const coord_def& target, int pow, bool fail)
     }
 
     mpr("You craft a gleaming metal champion and it leaps into the fray!");
-    you.duration[DUR_PARAGON_ACTIVE] = dur;
+    you.duration[DUR_PARAGON_ACTIVE] = 1;
 
     // Grab our imprinted weapon
     if (you.props.exists(PARAGON_WEAPON_KEY))

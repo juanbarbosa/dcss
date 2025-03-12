@@ -1569,11 +1569,11 @@ clear_messages = false
         between player actions (default is false which will delay the
         clearing of messages until the message space is full).
 
-show_more = true
-        Setting this option to false will cause the game not to prompt
-        if more than a window-full of messages are output at once. This
-        option has no effect if clear_messages is set. Additionally, it
-        has no effect on whether force_more_message triggers.
+show_more = false
+        Setting this option to true will cause the game to prompt if more
+        than a window-full of messages are output at once. This option
+        has no effect if clear_messages is set. Additionally, it has no
+        effect on whether force_more_message triggers.
 
 small_more = false
         With small_more = false (default), the --more-- prompt is on a
@@ -2664,8 +2664,22 @@ dump_order += notes,screenshots,vaults,skill_gains,action_counts
             dump_order += -
         to place a separator between sections.
 
-        You can also add arbitrary section names; ones not mentioned here will
-        be interpreted as custom user-defined Lua functions with no arguments.
+        You can also add your own sections by writing a Lua function and
+        adding its name to the list. The function's return value will then
+        be dumped. You can reference global variables just like regular Lua
+        functions, but its name must be in lowercase, and no call arguments
+        will be provided.
+
+        Example:
+          {
+            myRace = you.race()
+            function mydumpfn()
+              return
+                "This will be printed to dump. Your species is " .. myRace
+            end
+          }
+          dump_order += mydumpfn
+
 
 4-c     Notes.
 --------------

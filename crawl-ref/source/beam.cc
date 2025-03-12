@@ -2588,6 +2588,19 @@ static void _waterlog_mon(monster &mon, int ench_pow)
     mon.add_ench(mon_enchant(ENCH_WATERLOGGED, 0, &you, dur));
 }
 
+void bolt::special_explode()
+{
+    special_explosion->in_explosion_phase = false;
+    special_explosion->target = pos();
+    special_explosion->refine_for_explosion();
+    special_explosion->explode();
+
+    // XXX: we're significantly overcounting here.
+    foe_info      += special_explosion->foe_info;
+    friend_info   += special_explosion->friend_info;
+    beam_cancelled = beam_cancelled || special_explosion->beam_cancelled;
+}
+
 void bolt::affect_endpoint()
 {
     // Test if this shot should trigger Dimensional Bullseye.
@@ -2609,16 +2622,7 @@ void bolt::affect_endpoint()
     // attack hit. (And ranged attacks should only explode if
     // they hit the target, to avoid silliness with . targeting.)
     if (special_explosion && (is_tracer || !item || !hit_verb.empty()))
-    {
-        special_explosion->target = pos();
-        special_explosion->refine_for_explosion();
-        special_explosion->explode();
-
-        // XXX: we're significantly overcounting here.
-        foe_info      += special_explosion->foe_info;
-        friend_info   += special_explosion->friend_info;
-        beam_cancelled = beam_cancelled || special_explosion->beam_cancelled;
-    }
+        special_explode();
 
     // Leave an object, if applicable.
     if (item && !is_tracer && was_missile)
@@ -2680,7 +2684,8 @@ void bolt::affect_endpoint()
     if (cloud != CLOUD_NONE)
         big_cloud(cloud, agent(), pos(), get_cloud_pow(), get_cloud_size());
 
-    if (use_bullseye)
+    // bail out of bullseye early if its target died somehow
+    if (use_bullseye && you.duration[DUR_DIMENSIONAL_BULLSEYE] > 0)
     {
         monster* bullseye_targ = monster_by_mid(you.props[BULLSEYE_TARGET_KEY].get_int());
         mpr("Your projectile teleports!");
@@ -2694,6 +2699,9 @@ void bolt::affect_endpoint()
             // beneath them). I think this should work fine?
             drop_object();
         }
+
+        if (special_explosion && (is_tracer || !item || !hit_verb.empty()))
+            special_explode();
     }
 
     // you like special cases, right?
@@ -4180,9 +4188,7 @@ static const vector<pie_effect> pie_effects = {
             if (defender.is_monster())
             {
                 monster *mons = defender.as_monster();
-                simple_monster_message(*mons, " loses the ability to speak.");
-                mons->add_ench(mon_enchant(ENCH_MUTE, 0, beam.agent(),
-                            4 + random2(7) * BASELINE_DELAY));
+                silence_monster(*mons, beam.agent(), (4 + random2(7)) * BASELINE_DELAY);
             }
             else
             {
@@ -4191,11 +4197,8 @@ static const vector<pie_effect> pie_effects = {
                 else
                     mpr("An unnatural silence engulfs you.");
 
-                you.increase_duration(DUR_SILENCE, 4 + random2(7), 10);
-                invalidate_agrid(true);
+                silence_player(4 + random2(7));
 
-                if (you.beheld())
-                    you.update_beholders();
             }
         },
         10
@@ -5641,7 +5644,7 @@ void bolt::affect_monster(monster* mon)
     {
         // Test if this qualifies to trigger Dimensional Bullseye later on.
         if (agent()->is_player() && you.duration[DUR_DIMENSIONAL_BULLSEYE]
-            && !can_trigger_bullseye && !special_explosion
+            && !can_trigger_bullseye
             && !mon->is_firewood() && mon->summoner != MID_PLAYER)
         {
             can_trigger_bullseye = true;

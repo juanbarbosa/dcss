@@ -989,7 +989,7 @@ static void _ARC_BLADE_unequip(item_def */*item*/, bool *show_msgs)
 }
 
 static void _ARC_BLADE_melee_effects(item_def* /*weapon*/, actor* attacker,
-                                     actor* /*defender*/, bool /*mondied*/,
+                                     actor* defender, bool /*mondied*/,
                                      int /*dam*/)
 {
     if (one_chance_in(3))
@@ -1001,7 +1001,10 @@ static void _ARC_BLADE_melee_effects(item_def* /*weapon*/, actor* attacker,
         else
             mpr("You hear the crackle of electricity.");
 
-        cast_discharge(pow, *attacker, false, false);
+        if (attacker->pos().distance_from(defender->pos()) <= 1)
+            cast_discharge(pow, *attacker, false, false);
+        else
+            discharge_at_location(pow, *attacker, defender->pos());
     }
 }
 
@@ -1568,9 +1571,9 @@ static void _SALAMANDER_world_reacts(item_def * /* item */)
 
 ////////////////////////////////////////////////////
 
-static void _GUARD_unequip(item_def * /* item */, bool * show_msgs)
+static void _GUARD_unequip(item_def *item, bool * show_msgs)
 {
-    monster *spectral_weapon = find_spectral_weapon(&you);
+    monster *spectral_weapon = find_spectral_weapon(*item);
     if (spectral_weapon)
     {
         _equip_mpr(show_msgs, "Your spectral weapon disappears.");

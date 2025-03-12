@@ -103,7 +103,7 @@ bool melee_attack::bad_attempt()
     if (never_harm_monster(attacker, defender->as_monster(), true))
         return true;
 
-    if (player_unrand_bad_attempt(offhand_weapon()))
+    if (!is_projected && player_unrand_bad_attempt(offhand_weapon()))
         return true;
 
     if (!cleave_targets.empty())
@@ -140,8 +140,7 @@ bool melee_attack::player_unrand_bad_attempt(const item_def *offhand,
     if (!you.can_see(*defender))
         return false;
 
-    return weapon && ::player_unrand_bad_attempt(*weapon, defender, check_only)
-        || offhand && ::player_unrand_bad_attempt(*offhand, defender, check_only);
+    return ::player_unrand_bad_attempt(weapon, offhand, defender, check_only);
 }
 
 bool melee_attack::handle_phase_attempted()
@@ -1032,7 +1031,7 @@ void melee_attack::handle_spectral_brand()
     if (attacker->type == MONS_SPECTRAL_WEAPON || !defender->alive())
         return;
     attacker->triggered_spectral = true;
-    spectral_weapon_fineff::schedule(*attacker, *defender, weapon);
+    spectral_weapon_fineff::schedule(*attacker, *defender, mutable_wpn);
 }
 
 item_def *melee_attack::offhand_weapon() const
@@ -1963,8 +1962,11 @@ bool melee_attack::player_aux_test_hit()
             to_hit = -1;
     }
 
-    if (to_hit >= evasion || auto_hit)
+    if (to_hit >= evasion || auto_hit
+        || wu_jian_has_momentum(wu_jian_attack))
+    {
         return true;
+    }
 
     mprf("Your %s misses %s.", aux_attack.c_str(),
          defender->name(DESC_THE).c_str());

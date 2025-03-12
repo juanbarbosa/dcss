@@ -4905,7 +4905,7 @@ static object_class_type _superb_object_class()
             10, OBJ_JEWELLERY,
             10, OBJ_BOOKS,
             10, OBJ_STAVES,
-            10, OBJ_MISCELLANY,
+            4, OBJ_MISCELLANY,
             1, OBJ_TALISMANS);
 }
 
@@ -5063,8 +5063,9 @@ static void _dgn_give_mon_spec_items(mons_spec &mspec, monster *mon)
     // Get rid of existing equipment.
     for (mon_inv_iterator ii(*mon); ii; ++ii)
     {
-        mon->unequip(*ii, false, true);
-        destroy_item(ii->index(), true);
+        item_def &item = *ii;
+        mon->unequip(ii.slot(), false, true);
+        destroy_item(item, true);
     }
 
     item_list &list = mspec.items;
@@ -6293,6 +6294,8 @@ object_class_type item_in_shop(shop_type shop_type)
 
     case SHOP_GENERAL:
     case SHOP_GENERAL_ANTIQUE:
+        if (one_chance_in(10))
+            return OBJ_MISCELLANY;
         return OBJ_RANDOM;
 
     case SHOP_JEWELLERY:

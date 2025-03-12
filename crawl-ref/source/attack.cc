@@ -537,7 +537,7 @@ bool attack::distortion_affects_defender()
 void attack::antimagic_affects_defender(int pow)
 {
     obvious_effect =
-        enchant_actor_with_flavour(defender, nullptr, BEAM_DRAIN_MAGIC, pow);
+        enchant_actor_with_flavour(defender, attacker, BEAM_DRAIN_MAGIC, pow);
 }
 
 void attack::pain_affects_defender()
@@ -1428,12 +1428,15 @@ void attack::calc_elemental_brand_damage(beam_type flavour,
     {
         // XXX: assumes "what" is singular
         special_damage_message = make_stringf(
-            "%s %s %s%s",
+            "%s %s %s%s%s",
             what ? what : atk_name(DESC_THE).c_str(),
             what ? conjugate_verb(verb, false).c_str()
                  : attacker->conj_verb(verb).c_str(),
             // Don't allow reflexive if the subject wasn't the attacker.
             defender_name(!what).c_str(),
+            flavour == BEAM_FIRE && defender->res_fire() < 0
+             || flavour == BEAM_COLD && defender->res_cold() < 0 ? " terribly"
+                : "",
             attack_strength_punctuation(special_damage).c_str());
     }
 }

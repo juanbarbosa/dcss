@@ -1518,9 +1518,6 @@ int player_spec_fire()
 
     sf += you.scan_artefacts(ARTP_ENHANCE_FIRE);
 
-    if (you.unrand_equipped(UNRAND_SALAMANDER))
-        sf++;
-
     if (you.unrand_equipped(UNRAND_ELEMENTAL_STAFF))
         sf++;
 
@@ -1568,9 +1565,6 @@ int player_spec_air()
     sa += you.scan_artefacts(ARTP_ENHANCE_AIR);
 
     if (you.unrand_equipped(UNRAND_ELEMENTAL_STAFF))
-        sa++;
-
-    if (you.unrand_equipped(UNRAND_AIR))
         sa++;
 
     return sa;
@@ -4615,6 +4609,23 @@ void end_sticky_flame_player()
     you.props.erase(STICKY_FLAMER_KEY);
     you.props.erase(STICKY_FLAME_AUX_KEY);
     you.props.erase(STICKY_FLAME_POWER_KEY);
+}
+
+void silence_player(int turns)
+{
+    ASSERT(!crawl_state.game_is_arena());
+
+    if (you.duration[DUR_SILENCE])
+        mpr("You feel your silence will last longer.");
+    else
+        mpr("An unnatural silence engulfs you.");
+
+    you.increase_duration(DUR_SILENCE, turns, 30);
+
+    invalidate_agrid(true);
+
+    if (you.beheld())
+        you.update_beholders();
 }
 
 bool slow_player(int turns)

@@ -160,7 +160,7 @@ int check_your_resists(int hurted, beam_type flavour, string source,
             canned_msg(MSG_YOU_RESIST);
         else if (hurted > original && doEffects)
         {
-            mpr("You feel a terrible chill!");
+            mpr("The cold chills you terribly!");
             xom_is_stimulated(200);
         }
         break;
@@ -245,7 +245,7 @@ int check_your_resists(int hurted, beam_type flavour, string source,
             canned_msg(MSG_YOU_PARTIALLY_RESIST);
         else if (hurted > original && doEffects)
         {
-            mpr("You feel a painful chill!");
+            mpr("The ice freezes you terribly!");
             xom_is_stimulated(200);
         }
         break;
@@ -835,6 +835,15 @@ static void _maybe_slow()
 }
 
 /**
+ * Maybe silence the player after taking damage if they're wearing *Silence.
+ **/
+static void _maybe_silence()
+{
+    int silence_sources = you.scan_artefacts(ARTP_SILENCE);
+    if (x_chance_in_y(silence_sources, 100))
+        silence_player(4 + random2(7));
+}
+/**
  * Maybe disable scrolls after taking damage if the player has MUT_READ_SAFETY.
  **/
 static void _maybe_disable_scrolls()
@@ -1234,6 +1243,7 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
             {
                 _maybe_corrode();
                 _maybe_slow();
+                _maybe_silence();
                 _maybe_disable_scrolls();
                 _maybe_disable_potions();
             }
